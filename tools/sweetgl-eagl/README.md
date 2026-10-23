@@ -10,6 +10,7 @@ EAGL shim for iOS backboardd on top of Mesa panfrost (plan: `DESIGN.md`). Tags: 
 | `gli_table.c/.h`, `gli_special.c`, `gli_slots.txt`, `gen_gli.py` -> `gli_table_gen.c`, `gli_fake_gl.c` | the `{rctx, disp[1036]}` table CA calls GL through: 389 slots wired to Mesa `_mesa_*` (wrapper drops rctx), 8 hand-written, the rest log-once traps. **Host-tested** |
 | `gli_table_test.c`, `gli-host-test.sh`, `gli-mutation-check.sh` | fake `_mesa_*` generated from the same list; checks every slot non-NULL, right target called with args not shifted, traps log once, specials; 7 mutants |
 | `machosyms.py` | lists the defined global symbols of Mach-O static libs (`python3 -I machosyms.py $(find LIBS -name '*.a') > syms.txt`): input of `gen_gli.py --symbols` |
+| `dylib_main.m`, `INJECT.md`, `com.pixelios.backboardd-sweetgl.plist.in` | `libsweetgl.dylib` entry (constructor: probe SweetMali, `sweet_eagl_install`, 3 log channels) and how it is injected into backboardd (launchd EnvironmentVariables + kernel dyld policy, signing, timing, overlay steps). **Links as a dylib in CI** (stage 5, run 39988248534, [obs 2026-10-23]); never loaded on the phone. |
 | `DESIGN.md` | Mesa entry points with file:line, IOSurface import, per-frame flow |
 | `eagl_mesa.c/.h`, `eagl_mesa_link_test.c` | the Mesa backend (st_api_*, pipe_frontend_screen hooks, IOSurface resource cache) and a test main. **Compiles and links for iOS arm64 in CI only** (workflow Stage 4, private CI repo run 39981978917, [obs 2026-10-23]); never run, no host test (needs Mesa + the phone). |
 

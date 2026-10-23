@@ -2,7 +2,8 @@
 # Builds Mesa Panfrost (gallium, GLES only) for iOS 16 arm64 on a GitHub macos-14 runner:
 #   stage 1  host tools (mesa_clc, vtn_bindgen2, panfrost_compile) for macOS arm64, needs LLVM + SPIRV-LLVM-Translator
 #   stage 2  iOS cross build with `xcrun -sdk iphoneos`, no LLVM at runtime, static libs
-#   stage 3  placeholder: link the sweetgl-like dylib (EAGL shim + DRM emulation, not written yet), ad-hoc codesign
+#   stage 3/4  link test executables (DRM emulation, EAGL core + Mesa backend)
+#   stage 5  libsweetgl.dylib (EAGL shim + DRM emulation + Mesa), ad-hoc codesign, checks (INJECT.md)
 # The iPhoneOS SDK comes with the runner's Xcode (same trick as the kernel workflow). Nothing is downloaded
 # except Mesa source (checked against a sha256) and brew/pip packages. No secrets are used.
 name: mesa-panfrost-ios
@@ -264,19 +265,80 @@ jobs:
           echo "EAGLSYMS ok"; nm -u out/eagl/sweetgl-eagl-link-test | wc -l | sed 's/^/EAGLUNDEF-dylib-imports /'
           rm out/eagl/*.o
 
-      - name: Link the dylib (placeholder) and ad-hoc codesign
+      - name: Stage 5, link libsweetgl.dylib (EAGL shim + DRM emulation + Mesa panfrost, iOS arm64), ad-hoc codesign, verify
         run: |
-          if [ -x tools/sweetmali/build.sh ]; then
-            tools/sweetmali/build.sh "$RUNNER_TEMP/build-ios" "$GITHUB_WORKSPACE/out"
-          else
-            echo "tools/sweetmali/build.sh does not exist yet: EAGL shim + DRM emulation + frontend are not written (doc 32 section 7)."
-            echo "placeholder" > out/NO-DYLIB-YET.txt
-          fi
-          for d in out/*.dylib; do
-            [ -e "$d" ] || continue
-            codesign -f -s - "$d"
-            codesign -dv "$d"
+          B="$RUNNER_TEMP/build-ios"
+          SDK=$(xcrun -sdk iphoneos --show-sdk-path)
+          MAC=$(xcrun -sdk macosx --show-sdk-path)
+          E="$GITHUB_WORKSPACE/tools/sweetgl-eagl"
+          M="$GITHUB_WORKSPACE/tools/sweetgl-mali"
+          # same Mesa compile flags as stage 4 (cflags-st.txt); the files that do not see Mesa headers get plain flags
+          CF=(); while IFS= read -r l; do CF+=("$l"); done < "$RUNNER_TEMP/cflags-st.txt"
+          test ${#CF[@]} -gt 0
+          mkdir -p out/dylib; O="$GITHUB_WORKSPACE/out/dylib"
+          CC="xcrun -sdk iphoneos clang -arch arm64 -miphoneos-version-min=$IOS_MIN"
+          # Mesa-facing files (cwd = build dir: meson include paths are relative to it)
+          (cd "$B" && for f in "$M/sweet_drm_mali" "$E/eagl_core" "$E/eagl_mesa"; do
+            $CC "${CF[@]}" -Wno-unused-parameter -isystem "$MAC/System/Library/Frameworks/IOKit.framework/Headers" \
+              -I"$E" -I"$M" -I"$MESA/include" -I"$MESA/src/panfrost/darwin_drm" -I"$MESA/src/gallium/drivers" -I"$MESA/src/mesa" -I"$MESA/src" \
+              -c "$f.c" -o "$O/$(basename $f).o"
+          done)
+          # our own files: -fvisibility=hidden, only sweetgl_state is exported (dylib_main.m)
+          PL="$CC -Wall -Wextra -Werror -Wno-unused-parameter -fvisibility=hidden -I$E -I$M"
+          $PL -fno-objc-arc -c "$E/eagl_objc.m" -o "$O/eagl_objc.o"
+          $PL -fno-objc-arc -c "$E/dylib_main.m" -o "$O/dylib_main.o"
+          for f in gli_table gli_table_gen gli_special; do $PL -std=c11 -c "$E/$f.c" -o "$O/$f.o"; done
+          printf '_sweetgl_state\n' > "$O/exports.txt"
+          # libglsl_standalone.a is the offline compiler's scaffolding: it redefines _mesa_problem & co of libmesa.a (run 39987422556)
+          LIBS=$(find out/libs -name '*.a' ! -name 'libglsl_standalone.a' | sort)
+          # -U: sweet_gl_kernel_import is weak_import (kernel selector 5 does not exist yet), resolved at run time or NULL
+          # -dead_strip off: Mesa registers nothing through constructors, but keep the link simple and the symbol checks below meaningful
+          xcrun -sdk iphoneos clang++ -arch arm64 -miphoneos-version-min=$IOS_MIN -isysroot "$SDK" -dynamiclib \
+            -install_name /usr/lib/libsweetgl.dylib -exported_symbols_list "$O/exports.txt" -Wl,-U,_sweet_gl_kernel_import \
+            -o out/libsweetgl.dylib "$O"/*.o $LIBS \
+            -framework IOKit -framework CoreFoundation -framework Foundation -framework IOSurface -framework OpenGLES -lobjc -lc++ 2>&1 | tee "$RUNNER_TEMP/link-dylib.log"
+          test -f out/libsweetgl.dylib
+          codesign -f -s - out/libsweetgl.dylib
+          D=out/libsweetgl.dylib
+          ls -l $D; file $D
+          # --- verification (every check prints its evidence; a failure exits 1) ---
+          vtool -show-build $D | tee "$RUNNER_TEMP/vtool.txt"
+          grep -q 'platform IOS$' "$RUNNER_TEMP/vtool.txt" || { echo "platform is not IOS"; exit 1; }
+          grep -q 'minos 16.0' "$RUNNER_TEMP/vtool.txt" || { echo "minos is not 16.0"; exit 1; }
+          lipo -info $D > "$RUNNER_TEMP/lipo.txt"; grep -q 'arm64$' "$RUNNER_TEMP/lipo.txt" || { echo "not arm64 only"; exit 1; }
+          echo 'LOADCMDS'; otool -L $D
+          # every dependency is a system path (no @rpath/@loader_path, nothing of ours or of the runner)
+          BADDEP=$(otool -L $D | tail -n +2 | awk '{print $1}' | grep -vE '^(/usr/lib/|/System/Library/)' || true)
+          test -z "$BADDEP" || { echo "non-system dependency: $BADDEP"; exit 1; }
+          otool -D $D > "$RUNNER_TEMP/inst.txt"; grep -qx '/usr/lib/libsweetgl.dylib' "$RUNNER_TEMP/inst.txt" || { echo "install name"; exit 1; }
+          # unresolved symbols: all must say "(from <system dylib>)"; only the one weak import is looked up dynamically
+          nm -um $D > "$RUNNER_TEMP/undef.txt"; wc -l < "$RUNNER_TEMP/undef.txt" | sed 's/^/UNDEF-COUNT /'
+          BADSYM=$(grep -v ' (from ' "$RUNNER_TEMP/undef.txt" | grep -v '_sweet_gl_kernel_import' || true)
+          test -z "$BADSYM" || { echo "unresolved non-system symbols:"; echo "$BADSYM"; exit 1; }
+          ! grep -q '_sweet_gl_kernel_import' "$RUNNER_TEMP/undef.txt" || echo "WEAK-IMPORT sweet_gl_kernel_import (expected)"
+          # the DRM emulation symbols Mesa references are defined inside the dylib (hidden is fine, they must not be undefined)
+          nm $D > "$RUNNER_TEMP/syms.txt"   # to a file: grep -q on a pipe dies of SIGPIPE under pipefail
+          for sym in _drmIoctl _drmGetVersion _drmGetCap _drmPrimeFDToHandle _sweet_drm_mali_open _sweet_eagl_install _sgl_context_create \
+                     _st_api_create_context _panfrost_drm_screen_create __mesa_EGLImageTargetTexture2DOES _sweet_gli_defaults; do
+            grep -qE " [TtDdSsBb] $sym\$" "$RUNNER_TEMP/syms.txt" || { echo "missing defined symbol $sym"; grep -i "${sym#_}" "$RUNNER_TEMP/syms.txt" | head; exit 1; }
+            ! grep -q " $sym\$" "$RUNNER_TEMP/undef.txt" || { echo "$sym is undefined"; exit 1; }
           done
+          for sym in _drmIoctl _sweet_drm_mali_open; do nm -m $D | grep " $sym\$" | sed 's/^/DRMSYM /'; done
+          # exports: exactly one
+          nm -gUm $D | sed 's/^/EXPORT /'
+          nm -gU $D > "$RUNNER_TEMP/exp.txt"; test "$(wc -l < "$RUNNER_TEMP/exp.txt" | tr -d ' ')" = 1 || { echo "exports are not exactly _sweetgl_state"; exit 1; }
+          # constructor present: ld64 for iOS 16 emits __TEXT,__init_offsets (or __DATA,__mod_init_func)
+          otool -l $D | grep -E 'sectname __(init_offsets|mod_init_func)' | sed 's/^/CTOR /'
+          otool -l $D > "$RUNNER_TEMP/lc.txt"; grep -qE 'sectname __(init_offsets|mod_init_func)' "$RUNNER_TEMP/lc.txt" || { echo "no constructor section"; exit 1; }
+          otool -s __TEXT __init_offsets $D 2>/dev/null | tail -n +3 | sed 's/^/INITOFFSETS /'
+          # the constructor function itself and its log strings
+          grep -E ' t _sweetgl_main$' "$RUNNER_TEMP/syms.txt" | sed 's/^/CTORSYM /'
+          strings -a $D | grep -E 'sweetgl: (loaded|SweetMali|EAGLContext)|/var/tmp/sweetgl.log' | sed 's/^/STR /'
+          # signature: ad-hoc, valid
+          codesign -dv $D 2>&1 | tee "$RUNNER_TEMP/cs.txt"
+          grep -q 'Signature=adhoc' "$RUNNER_TEMP/cs.txt" || { echo "not ad-hoc signed"; exit 1; }
+          codesign --verify --strict -vv $D
+          rm -f "$O"/*.o
           (cd out && find . -type f -print0 | xargs -0 shasum -a 256 > SHA256SUMS)
 
       - uses: actions/upload-artifact@v4

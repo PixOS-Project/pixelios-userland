@@ -20,3 +20,6 @@
 + (BOOL)setCurrentContext:(EAGLContext *)context;                                      /* [guess] BOOL return (both refs) */
 + (EAGLContext *)currentContext;
 @end
+
+/* eagl_objc.m: install the EAGLContext swizzles; 0 or -errno. */
+int sweet_eagl_install(void);

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Fragment, NOT a standalone job: merge these keys into the existing backboardd job of /System/Library/xpc/launchd.plist
+     (jobs['/System/Library/LaunchDaemons/com.apple.backboardd.plist']['EnvironmentVariables'].update(this dict)). INJECT.md s.4.
+     @DYLIB@ = /usr/lib/libsweetgl.dylib (substitute with sed). Do not create a second job with Label com.apple.backboardd. -->
+<plist version="1.0">
+<dict>
+	<key>DYLD_INSERT_LIBRARIES</key>
+	<string>@DYLIB@</string>
+</dict>
+</plist>

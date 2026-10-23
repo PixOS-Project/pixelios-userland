@@ -141,13 +141,15 @@ static void swap(Class c, SEL sel, void *imp)
 	else NSLog(@"sweetgl: EAGLContext has no %s", sel_getName(sel));
 }
 
-/* Runs at dylib load (sweetenv-injected into backboardd). */
-__attribute__((constructor)) static void sweet_eagl_install(void)
+/* Install the swizzles. Called by dylib_main.m's constructor (not a constructor itself, so the loader can log and refuse first).
+ * 0 = installed; -ENOENT: no EAGLContext class (OpenGLES not loaded); -EBUSY/-EINVAL: backend refused. Nothing is half-installed on failure. */
+int sweet_eagl_install(void)
 {
 	Class cls = objc_getClass("EAGLContext");
-	if (!cls) return;
+	if (!cls) return -ENOENT;
 	Class meta = object_getClass((id)cls);
-	if (sgl_set_backend(sweet_gl_mesa_backend()) != 0) return;
+	int r = sgl_set_backend(sweet_gl_mesa_backend());
+	if (r != 0) return r < 0 ? r : -EINVAL;
 	sweet_gli_ensure_current = sgl_ensure_current;   /* CA's server path never sets the current context itself */
 	swap(cls, @selector(initWithAPI:properties:), m_init);
 	swap(cls, @selector(dealloc), m_dealloc);
@@ -158,4 +160,5 @@ __attribute__((constructor)) static void sweet_eagl_install(void)
 	swap(cls, @selector(texImageIOSurface:target:internalFormat:width:height:format:type:plane:invert:), m_tex);
 	swap(meta, @selector(setCurrentContext:), m_set_current);
 	swap(meta, @selector(currentContext), m_current);
+	return 0;
 }
