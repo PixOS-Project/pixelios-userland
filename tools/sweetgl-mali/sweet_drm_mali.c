@@ -398,7 +398,9 @@ close_bo(uint32_t handle)
 	bo_unmap_cpu(handle, b);
 	uint64_t h = handle;
 	int e = kcall(SEL_BO_CLOSE, &h, 1, NULL, 0);
-	b->used = false;
+	if (e == 0 || e == -ENOENT) {
+		b->used = false;            /* any other error: the kernel BO lives on (e.g. the job did not finish), keep our record */
+	}
 	return e;
 }
 

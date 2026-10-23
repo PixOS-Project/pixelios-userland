@@ -171,8 +171,9 @@ IOConnectCallMethod(mach_port_t c, uint32_t sel, const uint64_t *in, uint32_t ni
 		if (in[0] <= fake.completed) {
 			return kIOReturnSuccess;
 		}
-		if (fake.complete_after_waits && ++fake.timeouts >= fake.complete_after_waits) {
+		if (fake.complete_after_waits && fake.timeouts++ >= fake.complete_after_waits) {   /* n Timeouts, then done */
 			fake.completed = fake.seq;
+			return kIOReturnSuccess;
 		}
 		return kIOReturnTimeout;
 	default:
