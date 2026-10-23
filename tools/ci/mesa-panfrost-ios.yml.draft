@@ -1,5 +1,4 @@
-# DRAFT, NOT ACTIVE. Rename to .github/workflows/mesa-panfrost-ios.yml only after the user agrees.
-# Plan and the reason for every step: pixelios-kernel/docs/research/32-mesa-panfrost-ios-plan.md (private super repo).
+# Observed 2026-10-23: green on TheSmuks/pixelios-gpu-ci (private), run 39978185107: 74 static libs for iOS arm64 (libpanfrost.a, libgallium.a, libmesa.a), vtool platform=iOS checked. libloader/pipe_loader fail on purpose (need real libdrm).
 #
 # Builds Mesa Panfrost (gallium, GLES only) for iOS 16 arm64 on a GitHub macos-14 runner:
 #   stage 1  host tools (mesa_clc, vtn_bindgen2, panfrost_compile) for macOS arm64, needs LLVM + SPIRV-LLVM-Translator
@@ -17,7 +16,7 @@ on:
         default: "26.2.5"
       mesa_sha256:
         description: sha256 of mesa-VERSION.tar.xz (REQUIRED, fill in from archive.mesa3d.org .sha256sum before the first real run)
-        default: ""
+        default: "794b3d1729075dae7ebd47c7283b7ca0cdb5dec668f7f11cc0a5d82f6138a0a5"
 
 permissions:
   contents: read
@@ -104,7 +103,11 @@ jobs:
             -Dzstd=disabled -Dexpat=disabled -Dxmlconfig=disabled -Dshader-cache=disabled \
             -Dvalgrind=disabled -Dlibunwind=disabled -Dlmsensors=disabled -Dbuild-tests=false \
             -Dpanfrost-rust=false --wrap-mode=nofallback
-          meson install -C "$RUNNER_TEMP/build-host"
+          # only the three tools: -Dtools=panfrost also wants drmOpenWithType (texfeatures) and endian.h (panfrostdump), which do not build on macOS
+          B="$RUNNER_TEMP/build-host"
+          ninja -C "$B" src/compiler/clc/mesa_clc src/compiler/spirv/vtn_bindgen2 src/panfrost/clc/panfrost_compile
+          mkdir -p "$RUNNER_TEMP/host-tools/bin"
+          cp "$B/src/compiler/clc/mesa_clc" "$B/src/compiler/spirv/vtn_bindgen2" "$B/src/panfrost/clc/panfrost_compile" "$RUNNER_TEMP/host-tools/bin/"
           ls -l "$RUNNER_TEMP/host-tools/bin"
           for t in mesa_clc vtn_bindgen2 panfrost_compile; do test -x "$RUNNER_TEMP/host-tools/bin/$t" || { echo "missing host tool $t"; exit 1; }; done
 
@@ -160,7 +163,10 @@ jobs:
             -Dgallium-va=disabled -Dvideo-codecs= -Dhtml-docs=disabled -Ddisplay-info=disabled
           # static_library() targets are not built by default: ask ninja for every .a
           LIBS=$(ninja -C "$RUNNER_TEMP/build-ios" -t targets all | sed -n 's/^\(src\/.*\.a\): .*/\1/p')
-          ninja -C "$RUNNER_TEMP/build-ios" $LIBS
+          # libloader / pipe_loader_drm are device-probing helpers for the dri/va/lavapipe targets, we create the screen directly (needs real libdrm device enumeration): allowed to fail.
+          ninja -k 0 -C "$RUNNER_TEMP/build-ios" $LIBS 2>&1 | tee "$RUNNER_TEMP/ninja.log" || true
+          BAD=$(grep '^FAILED:' "$RUNNER_TEMP/ninja.log" | grep -vE 'libloader\.a|libpipe_loader_static\.a|pipe_loader' || true)
+          test -z "$BAD" || { echo "unexpected failures:"; echo "$BAD"; exit 1; }
 
       - name: Collect static libs and check they are iOS arm64
         run: |
