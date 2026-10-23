@@ -4,7 +4,7 @@
 #   tools/overlay-ios-root.sh BASE.img OUT.img MALI_TEST GL_TEST
 #
 # BASE.img is left alone. OUT.img = BASE + /usr/local/bin/{sweetmali-test,sweetgl-test} + two jobs in System/Library/xpc/launchd.plist
-# (the cache launchd reads with launchd_unsecure_cache=1; the plist is read out of BASE, so every other edit stays):
+# (keys are plist paths like the Apple jobs: a bare label is ignored by launchd, observed gputest1; the cache launchd reads with launchd_unsecure_cache=1; the plist is read out of BASE, so every other edit stays):
 #   org.pixelios.sweetmali-test  RunAtLoad
 #   org.pixelios.sweetgl-test    StartInterval 90 (runs after the first test has closed the one allowed SweetMali client)
 # Their stdout is /dev/null, which patch 0048 copies into the kernel/USB log as "|name| text" for the names in boot-arg
@@ -36,7 +36,7 @@ for k in [k for k, j in jobs.items() if j.get('Label', '').startswith('org.pixel
     del jobs[k]                                   # rerun on an already overlaid image
 for label, prog, extra in (('sweetmali-test', '/usr/local/bin/sweetmali-test', {'RunAtLoad': True}),
                            ('sweetgl-test', '/usr/local/bin/sweetgl-test', {'StartInterval': 90})):
-    jobs['org.pixelios.' + label] = dict(Label='org.pixelios.' + label, Program=prog, ProgramArguments=[prog], UserName='root', **extra)
+    jobs['/System/Library/LaunchDaemons/org.pixelios.' + label + '.plist'] = dict(Label='org.pixelios.' + label, Program=prog, ProgramArguments=[prog], UserName='root', **extra)
 data = plistlib.dumps(plist, fmt=plistlib.FMT_BINARY)
 with tarfile.open(w + '/overlay.tar', 'w', format=tarfile.GNU_FORMAT) as t:
     def add(name, payload, mode, isdir=False):
