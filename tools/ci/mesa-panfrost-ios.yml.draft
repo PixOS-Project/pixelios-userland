@@ -257,7 +257,11 @@ jobs:
           codesign -f -s - out/eagl/sweetgl-eagl-link-test
           file out/eagl/sweetgl-eagl-link-test
           vtool -show-build out/eagl/sweetgl-eagl-link-test
-          echo "UNDEFINED:"; nm -u out/eagl/sweetgl-eagl-link-test | grep -v '^_' || true
+          # the Mesa state tracker and panfrost must really be inside the binary (ld succeeded, so nothing is undefined)
+          for sym in _st_api_create_context _st_finish _panfrost_drm_screen_create __mesa_EGLImageTargetTexture2DOES _sgl_context_create _sweet_drm_mali_open; do
+            nm out/eagl/sweetgl-eagl-link-test | grep -q " [Tt] $sym\$" || { echo "missing defined symbol $sym"; exit 1; }
+          done
+          echo "EAGLSYMS ok"; nm -u out/eagl/sweetgl-eagl-link-test | wc -l | sed 's/^/EAGLUNDEF-dylib-imports /'
           rm out/eagl/*.o
 
       - name: Link the dylib (placeholder) and ad-hoc codesign

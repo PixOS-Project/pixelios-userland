@@ -8,7 +8,7 @@ EAGL shim for iOS backboardd on top of Mesa panfrost (plan: `DESIGN.md`). Tags: 
 | `eagl_core_test.c`, `host-test.sh`, `mutation-check.sh` | fake-backend test and 8 mutants |
 | `eagl_objc.m` | ObjC swizzle sketch. **Never compiled, never run** (no Apple SDK here). |
 | `DESIGN.md` | Mesa entry points with file:line, IOSurface import, per-frame flow |
-| `eagl_mesa.c` | **not written** (the backend: st_api_*, pipe_frontend_screen hooks, resource cache) |
+| `eagl_mesa.c/.h`, `eagl_mesa_link_test.c` | the Mesa backend (st_api_*, pipe_frontend_screen hooks, IOSurface resource cache) and a test main. **Compiles and links for iOS arm64 in CI only** (workflow Stage 4, private CI repo run 39981978917, [obs 2026-10-23]); never run, no host test (needs Mesa + the phone). |
 
 ```
 ./host-test.sh        # cc -Wall -Wextra -Werror run, then gcc ASan+UBSan run: PASS
