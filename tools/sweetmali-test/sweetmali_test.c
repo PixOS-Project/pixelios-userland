@@ -66,6 +66,7 @@ main(void)
 		return 2;
 	}
 	uint64_t handle = out[0], gva = out[1], bytes = out[2];
+	say("sweetmali-test: step boNew ok handle=%llu va=%#llx bytes=%llu\n", (unsigned long long)handle, (unsigned long long)gva, (unsigned long long)bytes);
 	mach_vm_address_t addr = 0;
 	mach_vm_size_t sz = 0;
 	kr = IOConnectMapMemory64(c, (uint32_t)handle, mach_task_self(), &addr, &sz, kIOMapAnywhere | kIOMapWriteCombineCache);
@@ -73,6 +74,7 @@ main(void)
 		say("sweetmali-test: FAIL map kr=%#x\n", kr);
 		return 2;
 	}
+	say("sweetmali-test: step map ok addr=%#llx size=%llu\n", (unsigned long long)addr, (unsigned long long)sz);
 	volatile uint32_t *d = (volatile uint32_t *)(uintptr_t)addr;
 	d[0x10 / 4] = 0x10004u;
 	*(volatile uint64_t *)(addr + 0x20) = gva + 0x100;
@@ -80,6 +82,7 @@ main(void)
 	*(volatile uint64_t *)(addr + 0x30) = MAGIC;
 	*(volatile uint64_t *)(addr + 0x100) = 0xa5a5a5a5a5a5a5a5ull;
 	__sync_synchronize();
+	say("sweetmali-test: step job written, submitting\n");
 	uint64_t sub[2] = { gva, 0 }, seq[1] = { 0 };
 	uint32_t seqn = 1;
 	kr = IOConnectCallMethod(c, SEL_SUBMIT, sub, 2, NULL, 0, seq, &seqn, NULL, NULL);
@@ -87,6 +90,7 @@ main(void)
 		say("sweetmali-test: FAIL submit kr=%#x\n", kr);
 		return 2;
 	}
+	say("sweetmali-test: step submitted seq=%llu, waiting\n", (unsigned long long)seq[0]);
 	uint64_t w[2] = { seq[0], 1000000 };
 	kr = IOConnectCallMethod(c, SEL_WAIT, w, 2, NULL, 0, NULL, NULL, NULL, NULL);
 	__sync_synchronize();
