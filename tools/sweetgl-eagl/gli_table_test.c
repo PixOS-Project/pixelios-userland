@@ -27,6 +27,9 @@ static unsigned long call(const struct sweet_gli *t, int slot)
 	return ((callfn)t->disp[slot])(t->rctx, 1, 2, 3, 4, 5);
 }
 
+static int ens_n; static void *ens_last;
+static void ens(void *r) { ens_n++; ens_last = r; }
+
 static int logged_slot, logged_n; static char logged_name[64];
 static void logfn(int slot, const char *name) { logged_slot = slot; logged_n++; snprintf(logged_name, sizeof logged_name, "%s", name); }
 
@@ -43,6 +46,7 @@ int main(void)
 	int dummy;
 	sweet_gli_set_log(logfn);
 	sweet_gli_init(&t, &dummy);
+	sweet_gli_ensure_current = ens;
 	CHECK(t.rctx == &dummy);
 	CHECK(sizeof t.disp / sizeof t.disp[0] == 1036);
 
@@ -53,22 +57,25 @@ int main(void)
 		const char *tg = sweet_gli_targets[i];
 		if (!tg) {   /* trap: logs once, returns 0, count matches */
 			traps++;
-			int before = logged_n;
-			CHECK(call(&t, i) == 0);
+			int before = logged_n; ens_n = 0;
+			CHECK(call(&t, i) == 0 && ens_n == 0);   /* traps touch no GL: no context switch */
 			CHECK(logged_n == before + 1 && logged_slot == i && !strcmp(logged_name, sweet_gli_names[i]));
 			CHECK(call(&t, i) == 0 && logged_n == before + 1);   /* once only */
 		} else if (!strncmp(tg, "_mesa_", 6)) {   /* wired: the right fake, args after rctx in order */
 			wired++;
 			hit = NULL; memset(args, 0, sizeof args);
-			fake_ret = 0;
+			fake_ret = 0; ens_n = 0; ens_last = NULL;
 			call(&t, i);
+			CHECK(ens_n == 1 && ens_last == &dummy);   /* made current exactly once, with this table's rctx */
 			CHECK(hit && !strcmp(hit, tg));
 			int n = sweet_gli_nint[i] < 5 ? sweet_gli_nint[i] : 5;
 			for (int k = 0; k < n; k++) CHECK(args[k] == (unsigned long)(k + 1));
 		} else {
 			special++;
 			CHECK(!strncmp(tg, "sgli_", 5));
+			ens_n = 0;
 			call(&t, i);   /* must not crash */
+			CHECK(ens_n == (strcmp(tg, "sgli_nop") ? 1 : 0));
 		}
 	}
 	printf("slots: %d named, %d wired, %d special, %d trap\n", named, wired, special, traps);
@@ -112,6 +119,10 @@ int main(void)
 	fake_ret = 0; call(&t, del); CHECK(hit && !strcmp(hit, "_mesa_DeleteShader"));
 	hit = NULL; call(&t, slot_of("glInsertEventMarkerEXT")); CHECK(hit == NULL);
 	CHECK(sweet_gli_bound_texture_2d() == 0 && hit && !strcmp(hit, "_mesa_GetIntegerv"));
+
+	/* without a hook the wrappers still work */
+	sweet_gli_ensure_current = NULL; ens_n = 0; hit = NULL;
+	call(&t, slot_of("glBindTexture")); CHECK(hit && ens_n == 0);
 
 	printf("%d checks, %d failed\n", checks, fails);
 	puts(fails ? "FAIL" : "PASS");

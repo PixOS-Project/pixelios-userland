@@ -14,22 +14,23 @@ extern void _mesa_GetIntegerv(unsigned, int *);
  * GL_INVALID_ENUM, and CA treats NULL as "none" [src R33 s.2.3: `search_extension_list` is NULL-safe]. */
 const unsigned char *sgli_GetString(void *rctx, unsigned name)
 {
-	(void)rctx;
+	SWEET_GLI_ENSURE(rctx);
 	return name == 0x8a1e ? 0 : _mesa_GetString(name);
 }
 
 /* glFinishObjectAPPLE(object, name): no APPLE object fences here; finish everything [guess, R33 s.4 item 10]. */
-void sgli_FinishObject(void *rctx, unsigned object, int name) { (void)rctx; (void)object; (void)name; _mesa_Finish(); }
+void sgli_FinishObject(void *rctx, unsigned object, int name) { SWEET_GLI_ENSURE(rctx); (void)object; (void)name; _mesa_Finish(); }
 /* glTestObjectAPPLE(object, name): after a finish the object is complete: GL_TRUE [guess, R33 s.4 item 10]. */
-unsigned char sgli_TestObject(void *rctx, unsigned object, unsigned name) { (void)rctx; (void)object; (void)name; _mesa_Finish(); return 1; }
+unsigned char sgli_TestObject(void *rctx, unsigned object, unsigned name) { SWEET_GLI_ENSURE(rctx); (void)object; (void)name; _mesa_Finish(); return 1; }
 
 /* glDeleteObjectARB(obj): obj is a shader or a program; GL 2.0 names are one namespace in Mesa [src sailfish eagl.c:sgl_DeleteObjectARB does the same split]. */
 void sgli_DeleteObjectARB(void *rctx, unsigned obj)
 {
-	(void)rctx;
+	SWEET_GLI_ENSURE(rctx);
 	if (_mesa_IsProgram(obj)) _mesa_DeleteProgram(obj); else _mesa_DeleteShader(obj);
 }
 
+/* (sgli_nop below touches no GL state, so it does not ensure a current context.) */
 /* debug markers and glFramebufferParameteri APPLE colour mode (R33 s.4 item 9: accept as no-op). */
 long sgli_nop(void) { return 0; }
 

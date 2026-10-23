@@ -9,783 +9,783 @@ extern void sgli_TestObject(void);
 extern void sgli_nop(void);
 
 extern void _mesa_AlphaFunc(unsigned int, float);
-static void w_1(void *rctx, unsigned int a0, float a1) { _mesa_AlphaFunc(a0, a1); }
+static void w_1(void *rctx, unsigned int a0, float a1) { SWEET_GLI_ENSURE(rctx); _mesa_AlphaFunc(a0, a1); }
 extern void _mesa_BindTexture(unsigned int, unsigned int);
-static void w_5(void *rctx, unsigned int a0, unsigned int a1) { _mesa_BindTexture(a0, a1); }
+static void w_5(void *rctx, unsigned int a0, unsigned int a1) { SWEET_GLI_ENSURE(rctx); _mesa_BindTexture(a0, a1); }
 extern void _mesa_BlendFunc(unsigned int, unsigned int);
-static void w_7(void *rctx, unsigned int a0, unsigned int a1) { _mesa_BlendFunc(a0, a1); }
+static void w_7(void *rctx, unsigned int a0, unsigned int a1) { SWEET_GLI_ENSURE(rctx); _mesa_BlendFunc(a0, a1); }
 extern void _mesa_Clear(unsigned int);
-static void w_10(void *rctx, unsigned int a0) { _mesa_Clear(a0); }
+static void w_10(void *rctx, unsigned int a0) { SWEET_GLI_ENSURE(rctx); _mesa_Clear(a0); }
 extern void _mesa_ClearColor(float, float, float, float);
-static void w_12(void *rctx, float a0, float a1, float a2, float a3) { _mesa_ClearColor(a0, a1, a2, a3); }
+static void w_12(void *rctx, float a0, float a1, float a2, float a3) { SWEET_GLI_ENSURE(rctx); _mesa_ClearColor(a0, a1, a2, a3); }
 extern void _mesa_ClearStencil(int);
-static void w_15(void *rctx, int a0) { _mesa_ClearStencil(a0); }
+static void w_15(void *rctx, int a0) { SWEET_GLI_ENSURE(rctx); _mesa_ClearStencil(a0); }
 extern void _mesa_Color4f(float, float, float, float);
-static void w_37(void *rctx, float a0, float a1, float a2, float a3) { _mesa_Color4f(a0, a1, a2, a3); }
+static void w_37(void *rctx, float a0, float a1, float a2, float a3) { SWEET_GLI_ENSURE(rctx); _mesa_Color4f(a0, a1, a2, a3); }
 extern void _mesa_Color4ub(unsigned char, unsigned char, unsigned char, unsigned char);
-static void w_43(void *rctx, unsigned char a0, unsigned char a1, unsigned char a2, unsigned char a3) { _mesa_Color4ub(a0, a1, a2, a3); }
+static void w_43(void *rctx, unsigned char a0, unsigned char a1, unsigned char a2, unsigned char a3) { SWEET_GLI_ENSURE(rctx); _mesa_Color4ub(a0, a1, a2, a3); }
 extern void _mesa_ColorMask(unsigned char, unsigned char, unsigned char, unsigned char);
-static void w_49(void *rctx, unsigned char a0, unsigned char a1, unsigned char a2, unsigned char a3) { _mesa_ColorMask(a0, a1, a2, a3); }
+static void w_49(void *rctx, unsigned char a0, unsigned char a1, unsigned char a2, unsigned char a3) { SWEET_GLI_ENSURE(rctx); _mesa_ColorMask(a0, a1, a2, a3); }
 extern void _mesa_ColorPointer(int, unsigned int, int, void *);
-static void w_51(void *rctx, int a0, unsigned int a1, int a2, void * a3) { _mesa_ColorPointer(a0, a1, a2, a3); }
+static void w_51(void *rctx, int a0, unsigned int a1, int a2, void * a3) { SWEET_GLI_ENSURE(rctx); _mesa_ColorPointer(a0, a1, a2, a3); }
 extern void _mesa_CopyTexImage2D(unsigned int, int, unsigned int, int, int, int, int, int);
-static void w_54(void *rctx, unsigned int a0, int a1, unsigned int a2, int a3, int a4, int a5, int a6, int a7) { _mesa_CopyTexImage2D(a0, a1, a2, a3, a4, a5, a6, a7); }
+static void w_54(void *rctx, unsigned int a0, int a1, unsigned int a2, int a3, int a4, int a5, int a6, int a7) { SWEET_GLI_ENSURE(rctx); _mesa_CopyTexImage2D(a0, a1, a2, a3, a4, a5, a6, a7); }
 extern void _mesa_CopyTexSubImage2D(unsigned int, int, int, int, int, int, int, int);
-static void w_56(void *rctx, unsigned int a0, int a1, int a2, int a3, int a4, int a5, int a6, int a7) { _mesa_CopyTexSubImage2D(a0, a1, a2, a3, a4, a5, a6, a7); }
+static void w_56(void *rctx, unsigned int a0, int a1, int a2, int a3, int a4, int a5, int a6, int a7) { SWEET_GLI_ENSURE(rctx); _mesa_CopyTexSubImage2D(a0, a1, a2, a3, a4, a5, a6, a7); }
 extern void _mesa_CullFace(unsigned int);
-static void w_57(void *rctx, unsigned int a0) { _mesa_CullFace(a0); }
+static void w_57(void *rctx, unsigned int a0) { SWEET_GLI_ENSURE(rctx); _mesa_CullFace(a0); }
 extern void _mesa_DeleteTextures(int, void *);
-static void w_59(void *rctx, int a0, void * a1) { _mesa_DeleteTextures(a0, a1); }
+static void w_59(void *rctx, int a0, void * a1) { SWEET_GLI_ENSURE(rctx); _mesa_DeleteTextures(a0, a1); }
 extern void _mesa_DepthFunc(unsigned int);
-static void w_60(void *rctx, unsigned int a0) { _mesa_DepthFunc(a0); }
+static void w_60(void *rctx, unsigned int a0) { SWEET_GLI_ENSURE(rctx); _mesa_DepthFunc(a0); }
 extern void _mesa_DepthMask(unsigned char);
-static void w_61(void *rctx, unsigned char a0) { _mesa_DepthMask(a0); }
+static void w_61(void *rctx, unsigned char a0) { SWEET_GLI_ENSURE(rctx); _mesa_DepthMask(a0); }
 extern void _mesa_Disable(unsigned int);
-static void w_63(void *rctx, unsigned int a0) { _mesa_Disable(a0); }
+static void w_63(void *rctx, unsigned int a0) { SWEET_GLI_ENSURE(rctx); _mesa_Disable(a0); }
 extern void _mesa_DisableClientState(unsigned int);
-static void w_64(void *rctx, unsigned int a0) { _mesa_DisableClientState(a0); }
+static void w_64(void *rctx, unsigned int a0) { SWEET_GLI_ENSURE(rctx); _mesa_DisableClientState(a0); }
 extern void _mesa_DrawArrays(unsigned int, int, int);
-static void w_65(void *rctx, unsigned int a0, int a1, int a2) { _mesa_DrawArrays(a0, a1, a2); }
+static void w_65(void *rctx, unsigned int a0, int a1, int a2) { SWEET_GLI_ENSURE(rctx); _mesa_DrawArrays(a0, a1, a2); }
 extern void _mesa_DrawElements(unsigned int, int, unsigned int, void *);
-static void w_67(void *rctx, unsigned int a0, int a1, unsigned int a2, void * a3) { _mesa_DrawElements(a0, a1, a2, a3); }
+static void w_67(void *rctx, unsigned int a0, int a1, unsigned int a2, void * a3) { SWEET_GLI_ENSURE(rctx); _mesa_DrawElements(a0, a1, a2, a3); }
 extern void _mesa_Enable(unsigned int);
-static void w_72(void *rctx, unsigned int a0) { _mesa_Enable(a0); }
+static void w_72(void *rctx, unsigned int a0) { SWEET_GLI_ENSURE(rctx); _mesa_Enable(a0); }
 extern void _mesa_EnableClientState(unsigned int);
-static void w_73(void *rctx, unsigned int a0) { _mesa_EnableClientState(a0); }
+static void w_73(void *rctx, unsigned int a0) { SWEET_GLI_ENSURE(rctx); _mesa_EnableClientState(a0); }
 extern void _mesa_Finish(void);
-static void w_89(void *rctx) { _mesa_Finish(); }
+static void w_89(void *rctx) { SWEET_GLI_ENSURE(rctx); _mesa_Finish(); }
 extern void _mesa_Finish(void);
-static void w_90(void *rctx) { _mesa_Finish(); }
+static void w_90(void *rctx) { SWEET_GLI_ENSURE(rctx); _mesa_Finish(); }
 extern void _mesa_Fogf(unsigned int, float);
-static void w_91(void *rctx, unsigned int a0, float a1) { _mesa_Fogf(a0, a1); }
+static void w_91(void *rctx, unsigned int a0, float a1) { SWEET_GLI_ENSURE(rctx); _mesa_Fogf(a0, a1); }
 extern void _mesa_Fogfv(unsigned int, void *);
-static void w_92(void *rctx, unsigned int a0, void * a1) { _mesa_Fogfv(a0, a1); }
+static void w_92(void *rctx, unsigned int a0, void * a1) { SWEET_GLI_ENSURE(rctx); _mesa_Fogfv(a0, a1); }
 extern void _mesa_FrontFace(unsigned int);
-static void w_95(void *rctx, unsigned int a0) { _mesa_FrontFace(a0); }
+static void w_95(void *rctx, unsigned int a0) { SWEET_GLI_ENSURE(rctx); _mesa_FrontFace(a0); }
 extern void _mesa_GenTextures(int, void *);
-static void w_98(void *rctx, int a0, void * a1) { _mesa_GenTextures(a0, a1); }
+static void w_98(void *rctx, int a0, void * a1) { SWEET_GLI_ENSURE(rctx); _mesa_GenTextures(a0, a1); }
 extern void _mesa_GetBooleanv(unsigned int, void *);
-static void w_99(void *rctx, unsigned int a0, void * a1) { _mesa_GetBooleanv(a0, a1); }
+static void w_99(void *rctx, unsigned int a0, void * a1) { SWEET_GLI_ENSURE(rctx); _mesa_GetBooleanv(a0, a1); }
 extern unsigned int _mesa_GetError(void);
-static unsigned int w_102(void *rctx) { return _mesa_GetError(); }
+static unsigned int w_102(void *rctx) { SWEET_GLI_ENSURE(rctx); return _mesa_GetError(); }
 extern void _mesa_GetFloatv(unsigned int, void *);
-static void w_103(void *rctx, unsigned int a0, void * a1) { _mesa_GetFloatv(a0, a1); }
+static void w_103(void *rctx, unsigned int a0, void * a1) { SWEET_GLI_ENSURE(rctx); _mesa_GetFloatv(a0, a1); }
 extern void _mesa_GetIntegerv(unsigned int, void *);
-static void w_104(void *rctx, unsigned int a0, void * a1) { _mesa_GetIntegerv(a0, a1); }
+static void w_104(void *rctx, unsigned int a0, void * a1) { SWEET_GLI_ENSURE(rctx); _mesa_GetIntegerv(a0, a1); }
 extern void _mesa_GetLightfv(unsigned int, unsigned int, void *);
-static void w_105(void *rctx, unsigned int a0, unsigned int a1, void * a2) { _mesa_GetLightfv(a0, a1, a2); }
+static void w_105(void *rctx, unsigned int a0, unsigned int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_GetLightfv(a0, a1, a2); }
 extern void _mesa_GetMaterialfv(unsigned int, unsigned int, void *);
-static void w_110(void *rctx, unsigned int a0, unsigned int a1, void * a2) { _mesa_GetMaterialfv(a0, a1, a2); }
+static void w_110(void *rctx, unsigned int a0, unsigned int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_GetMaterialfv(a0, a1, a2); }
 extern void _mesa_GetPointerv(unsigned int, void *);
-static void w_115(void *rctx, unsigned int a0, void * a1) { _mesa_GetPointerv(a0, a1); }
+static void w_115(void *rctx, unsigned int a0, void * a1) { SWEET_GLI_ENSURE(rctx); _mesa_GetPointerv(a0, a1); }
 extern void _mesa_GetTexEnvfv(unsigned int, unsigned int, void *);
-static void w_118(void *rctx, unsigned int a0, unsigned int a1, void * a2) { _mesa_GetTexEnvfv(a0, a1, a2); }
+static void w_118(void *rctx, unsigned int a0, unsigned int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_GetTexEnvfv(a0, a1, a2); }
 extern void _mesa_GetTexEnviv(unsigned int, unsigned int, void *);
-static void w_119(void *rctx, unsigned int a0, unsigned int a1, void * a2) { _mesa_GetTexEnviv(a0, a1, a2); }
+static void w_119(void *rctx, unsigned int a0, unsigned int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_GetTexEnviv(a0, a1, a2); }
 extern void _mesa_GetTexImage(unsigned int, int, unsigned int, unsigned int, void *);
-static void w_123(void *rctx, unsigned int a0, int a1, unsigned int a2, unsigned int a3, void * a4) { _mesa_GetTexImage(a0, a1, a2, a3, a4); }
+static void w_123(void *rctx, unsigned int a0, int a1, unsigned int a2, unsigned int a3, void * a4) { SWEET_GLI_ENSURE(rctx); _mesa_GetTexImage(a0, a1, a2, a3, a4); }
 extern void _mesa_GetTexLevelParameterfv(unsigned int, int, unsigned int, void *);
-static void w_124(void *rctx, unsigned int a0, int a1, unsigned int a2, void * a3) { _mesa_GetTexLevelParameterfv(a0, a1, a2, a3); }
+static void w_124(void *rctx, unsigned int a0, int a1, unsigned int a2, void * a3) { SWEET_GLI_ENSURE(rctx); _mesa_GetTexLevelParameterfv(a0, a1, a2, a3); }
 extern void _mesa_GetTexLevelParameteriv(unsigned int, int, unsigned int, void *);
-static void w_125(void *rctx, unsigned int a0, int a1, unsigned int a2, void * a3) { _mesa_GetTexLevelParameteriv(a0, a1, a2, a3); }
+static void w_125(void *rctx, unsigned int a0, int a1, unsigned int a2, void * a3) { SWEET_GLI_ENSURE(rctx); _mesa_GetTexLevelParameteriv(a0, a1, a2, a3); }
 extern void _mesa_GetTexParameterfv(unsigned int, unsigned int, void *);
-static void w_126(void *rctx, unsigned int a0, unsigned int a1, void * a2) { _mesa_GetTexParameterfv(a0, a1, a2); }
+static void w_126(void *rctx, unsigned int a0, unsigned int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_GetTexParameterfv(a0, a1, a2); }
 extern void _mesa_GetTexParameteriv(unsigned int, unsigned int, void *);
-static void w_127(void *rctx, unsigned int a0, unsigned int a1, void * a2) { _mesa_GetTexParameteriv(a0, a1, a2); }
+static void w_127(void *rctx, unsigned int a0, unsigned int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_GetTexParameteriv(a0, a1, a2); }
 extern void _mesa_Hint(unsigned int, unsigned int);
-static void w_128(void *rctx, unsigned int a0, unsigned int a1) { _mesa_Hint(a0, a1); }
+static void w_128(void *rctx, unsigned int a0, unsigned int a1) { SWEET_GLI_ENSURE(rctx); _mesa_Hint(a0, a1); }
 extern unsigned char _mesa_IsEnabled(unsigned int);
-static unsigned char w_143(void *rctx, unsigned int a0) { return _mesa_IsEnabled(a0); }
+static unsigned char w_143(void *rctx, unsigned int a0) { SWEET_GLI_ENSURE(rctx); return _mesa_IsEnabled(a0); }
 extern unsigned char _mesa_IsTexture(unsigned int);
-static unsigned char w_145(void *rctx, unsigned int a0) { return _mesa_IsTexture(a0); }
+static unsigned char w_145(void *rctx, unsigned int a0) { SWEET_GLI_ENSURE(rctx); return _mesa_IsTexture(a0); }
 extern void _mesa_LightModelf(unsigned int, float);
-static void w_146(void *rctx, unsigned int a0, float a1) { _mesa_LightModelf(a0, a1); }
+static void w_146(void *rctx, unsigned int a0, float a1) { SWEET_GLI_ENSURE(rctx); _mesa_LightModelf(a0, a1); }
 extern void _mesa_LightModelfv(unsigned int, void *);
-static void w_147(void *rctx, unsigned int a0, void * a1) { _mesa_LightModelfv(a0, a1); }
+static void w_147(void *rctx, unsigned int a0, void * a1) { SWEET_GLI_ENSURE(rctx); _mesa_LightModelfv(a0, a1); }
 extern void _mesa_Lightf(unsigned int, unsigned int, float);
-static void w_150(void *rctx, unsigned int a0, unsigned int a1, float a2) { _mesa_Lightf(a0, a1, a2); }
+static void w_150(void *rctx, unsigned int a0, unsigned int a1, float a2) { SWEET_GLI_ENSURE(rctx); _mesa_Lightf(a0, a1, a2); }
 extern void _mesa_Lightfv(unsigned int, unsigned int, void *);
-static void w_151(void *rctx, unsigned int a0, unsigned int a1, void * a2) { _mesa_Lightfv(a0, a1, a2); }
+static void w_151(void *rctx, unsigned int a0, unsigned int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_Lightfv(a0, a1, a2); }
 extern void _mesa_LineWidth(float);
-static void w_155(void *rctx, float a0) { _mesa_LineWidth(a0); }
+static void w_155(void *rctx, float a0) { SWEET_GLI_ENSURE(rctx); _mesa_LineWidth(a0); }
 extern void _mesa_LoadIdentity(void);
-static void w_157(void *rctx) { _mesa_LoadIdentity(); }
+static void w_157(void *rctx) { SWEET_GLI_ENSURE(rctx); _mesa_LoadIdentity(); }
 extern void _mesa_LoadMatrixf(void *);
-static void w_159(void *rctx, void * a0) { _mesa_LoadMatrixf(a0); }
+static void w_159(void *rctx, void * a0) { SWEET_GLI_ENSURE(rctx); _mesa_LoadMatrixf(a0); }
 extern void _mesa_LogicOp(unsigned int);
-static void w_161(void *rctx, unsigned int a0) { _mesa_LogicOp(a0); }
+static void w_161(void *rctx, unsigned int a0) { SWEET_GLI_ENSURE(rctx); _mesa_LogicOp(a0); }
 extern void _mesa_Materialf(unsigned int, unsigned int, float);
-static void w_170(void *rctx, unsigned int a0, unsigned int a1, float a2) { _mesa_Materialf(a0, a1, a2); }
+static void w_170(void *rctx, unsigned int a0, unsigned int a1, float a2) { SWEET_GLI_ENSURE(rctx); _mesa_Materialf(a0, a1, a2); }
 extern void _mesa_Materialfv(unsigned int, unsigned int, void *);
-static void w_171(void *rctx, unsigned int a0, unsigned int a1, void * a2) { _mesa_Materialfv(a0, a1, a2); }
+static void w_171(void *rctx, unsigned int a0, unsigned int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_Materialfv(a0, a1, a2); }
 extern void _mesa_MatrixMode(unsigned int);
-static void w_174(void *rctx, unsigned int a0) { _mesa_MatrixMode(a0); }
+static void w_174(void *rctx, unsigned int a0) { SWEET_GLI_ENSURE(rctx); _mesa_MatrixMode(a0); }
 extern void _mesa_MultMatrixf(void *);
-static void w_176(void *rctx, void * a0) { _mesa_MultMatrixf(a0); }
+static void w_176(void *rctx, void * a0) { SWEET_GLI_ENSURE(rctx); _mesa_MultMatrixf(a0); }
 extern void _mesa_Normal3f(float, float, float);
-static void w_182(void *rctx, float a0, float a1, float a2) { _mesa_Normal3f(a0, a1, a2); }
+static void w_182(void *rctx, float a0, float a1, float a2) { SWEET_GLI_ENSURE(rctx); _mesa_Normal3f(a0, a1, a2); }
 extern void _mesa_NormalPointer(unsigned int, int, void *);
-static void w_188(void *rctx, unsigned int a0, int a1, void * a2) { _mesa_NormalPointer(a0, a1, a2); }
+static void w_188(void *rctx, unsigned int a0, int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_NormalPointer(a0, a1, a2); }
 extern void _mesa_PixelStorei(unsigned int, int);
-static void w_195(void *rctx, unsigned int a0, int a1) { _mesa_PixelStorei(a0, a1); }
+static void w_195(void *rctx, unsigned int a0, int a1) { SWEET_GLI_ENSURE(rctx); _mesa_PixelStorei(a0, a1); }
 extern void _mesa_PointSize(float);
-static void w_199(void *rctx, float a0) { _mesa_PointSize(a0); }
+static void w_199(void *rctx, float a0) { SWEET_GLI_ENSURE(rctx); _mesa_PointSize(a0); }
 extern void _mesa_PolygonOffset(float, float);
-static void w_201(void *rctx, float a0, float a1) { _mesa_PolygonOffset(a0, a1); }
+static void w_201(void *rctx, float a0, float a1) { SWEET_GLI_ENSURE(rctx); _mesa_PolygonOffset(a0, a1); }
 extern void _mesa_PopMatrix(void);
-static void w_205(void *rctx) { _mesa_PopMatrix(); }
+static void w_205(void *rctx) { SWEET_GLI_ENSURE(rctx); _mesa_PopMatrix(); }
 extern void _mesa_PushMatrix(void);
-static void w_210(void *rctx) { _mesa_PushMatrix(); }
+static void w_210(void *rctx) { SWEET_GLI_ENSURE(rctx); _mesa_PushMatrix(); }
 extern void _mesa_ReadBuffer(unsigned int);
-static void w_236(void *rctx, unsigned int a0) { _mesa_ReadBuffer(a0); }
+static void w_236(void *rctx, unsigned int a0) { SWEET_GLI_ENSURE(rctx); _mesa_ReadBuffer(a0); }
 extern void _mesa_ReadPixels(int, int, int, int, unsigned int, unsigned int, void *);
-static void w_237(void *rctx, int a0, int a1, int a2, int a3, unsigned int a4, unsigned int a5, void * a6) { _mesa_ReadPixels(a0, a1, a2, a3, a4, a5, a6); }
+static void w_237(void *rctx, int a0, int a1, int a2, int a3, unsigned int a4, unsigned int a5, void * a6) { SWEET_GLI_ENSURE(rctx); _mesa_ReadPixels(a0, a1, a2, a3, a4, a5, a6); }
 extern void _mesa_Rotatef(float, float, float, float);
-static void w_248(void *rctx, float a0, float a1, float a2, float a3) { _mesa_Rotatef(a0, a1, a2, a3); }
+static void w_248(void *rctx, float a0, float a1, float a2, float a3) { SWEET_GLI_ENSURE(rctx); _mesa_Rotatef(a0, a1, a2, a3); }
 extern void _mesa_Scalef(float, float, float);
-static void w_250(void *rctx, float a0, float a1, float a2) { _mesa_Scalef(a0, a1, a2); }
+static void w_250(void *rctx, float a0, float a1, float a2) { SWEET_GLI_ENSURE(rctx); _mesa_Scalef(a0, a1, a2); }
 extern void _mesa_Scissor(int, int, int, int);
-static void w_251(void *rctx, int a0, int a1, int a2, int a3) { _mesa_Scissor(a0, a1, a2, a3); }
+static void w_251(void *rctx, int a0, int a1, int a2, int a3) { SWEET_GLI_ENSURE(rctx); _mesa_Scissor(a0, a1, a2, a3); }
 extern void _mesa_ShadeModel(unsigned int);
-static void w_253(void *rctx, unsigned int a0) { _mesa_ShadeModel(a0); }
+static void w_253(void *rctx, unsigned int a0) { SWEET_GLI_ENSURE(rctx); _mesa_ShadeModel(a0); }
 extern void _mesa_StencilFunc(unsigned int, int, unsigned int);
-static void w_254(void *rctx, unsigned int a0, int a1, unsigned int a2) { _mesa_StencilFunc(a0, a1, a2); }
+static void w_254(void *rctx, unsigned int a0, int a1, unsigned int a2) { SWEET_GLI_ENSURE(rctx); _mesa_StencilFunc(a0, a1, a2); }
 extern void _mesa_StencilMask(unsigned int);
-static void w_255(void *rctx, unsigned int a0) { _mesa_StencilMask(a0); }
+static void w_255(void *rctx, unsigned int a0) { SWEET_GLI_ENSURE(rctx); _mesa_StencilMask(a0); }
 extern void _mesa_StencilOp(unsigned int, unsigned int, unsigned int);
-static void w_256(void *rctx, unsigned int a0, unsigned int a1, unsigned int a2) { _mesa_StencilOp(a0, a1, a2); }
+static void w_256(void *rctx, unsigned int a0, unsigned int a1, unsigned int a2) { SWEET_GLI_ENSURE(rctx); _mesa_StencilOp(a0, a1, a2); }
 extern void _mesa_TexCoordPointer(int, unsigned int, int, void *);
-static void w_289(void *rctx, int a0, unsigned int a1, int a2, void * a3) { _mesa_TexCoordPointer(a0, a1, a2, a3); }
+static void w_289(void *rctx, int a0, unsigned int a1, int a2, void * a3) { SWEET_GLI_ENSURE(rctx); _mesa_TexCoordPointer(a0, a1, a2, a3); }
 extern void _mesa_TexEnvf(unsigned int, unsigned int, float);
-static void w_290(void *rctx, unsigned int a0, unsigned int a1, float a2) { _mesa_TexEnvf(a0, a1, a2); }
+static void w_290(void *rctx, unsigned int a0, unsigned int a1, float a2) { SWEET_GLI_ENSURE(rctx); _mesa_TexEnvf(a0, a1, a2); }
 extern void _mesa_TexEnvfv(unsigned int, unsigned int, void *);
-static void w_291(void *rctx, unsigned int a0, unsigned int a1, void * a2) { _mesa_TexEnvfv(a0, a1, a2); }
+static void w_291(void *rctx, unsigned int a0, unsigned int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_TexEnvfv(a0, a1, a2); }
 extern void _mesa_TexEnvi(unsigned int, unsigned int, int);
-static void w_292(void *rctx, unsigned int a0, unsigned int a1, int a2) { _mesa_TexEnvi(a0, a1, a2); }
+static void w_292(void *rctx, unsigned int a0, unsigned int a1, int a2) { SWEET_GLI_ENSURE(rctx); _mesa_TexEnvi(a0, a1, a2); }
 extern void _mesa_TexEnviv(unsigned int, unsigned int, void *);
-static void w_293(void *rctx, unsigned int a0, unsigned int a1, void * a2) { _mesa_TexEnviv(a0, a1, a2); }
+static void w_293(void *rctx, unsigned int a0, unsigned int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_TexEnviv(a0, a1, a2); }
 extern void _mesa_TexImage2D(unsigned int, int, int, int, int, int, unsigned int, unsigned int, void *);
-static void w_301(void *rctx, unsigned int a0, int a1, int a2, int a3, int a4, int a5, unsigned int a6, unsigned int a7, void * a8) { _mesa_TexImage2D(a0, a1, a2, a3, a4, a5, a6, a7, a8); }
+static void w_301(void *rctx, unsigned int a0, int a1, int a2, int a3, int a4, int a5, unsigned int a6, unsigned int a7, void * a8) { SWEET_GLI_ENSURE(rctx); _mesa_TexImage2D(a0, a1, a2, a3, a4, a5, a6, a7, a8); }
 extern void _mesa_TexParameterf(unsigned int, unsigned int, float);
-static void w_302(void *rctx, unsigned int a0, unsigned int a1, float a2) { _mesa_TexParameterf(a0, a1, a2); }
+static void w_302(void *rctx, unsigned int a0, unsigned int a1, float a2) { SWEET_GLI_ENSURE(rctx); _mesa_TexParameterf(a0, a1, a2); }
 extern void _mesa_TexParameterfv(unsigned int, unsigned int, void *);
-static void w_303(void *rctx, unsigned int a0, unsigned int a1, void * a2) { _mesa_TexParameterfv(a0, a1, a2); }
+static void w_303(void *rctx, unsigned int a0, unsigned int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_TexParameterfv(a0, a1, a2); }
 extern void _mesa_TexParameteri(unsigned int, unsigned int, int);
-static void w_304(void *rctx, unsigned int a0, unsigned int a1, int a2) { _mesa_TexParameteri(a0, a1, a2); }
+static void w_304(void *rctx, unsigned int a0, unsigned int a1, int a2) { SWEET_GLI_ENSURE(rctx); _mesa_TexParameteri(a0, a1, a2); }
 extern void _mesa_TexParameteriv(unsigned int, unsigned int, void *);
-static void w_305(void *rctx, unsigned int a0, unsigned int a1, void * a2) { _mesa_TexParameteriv(a0, a1, a2); }
+static void w_305(void *rctx, unsigned int a0, unsigned int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_TexParameteriv(a0, a1, a2); }
 extern void _mesa_TexSubImage2D(unsigned int, int, int, int, int, int, unsigned int, unsigned int, void *);
-static void w_307(void *rctx, unsigned int a0, int a1, int a2, int a3, int a4, int a5, unsigned int a6, unsigned int a7, void * a8) { _mesa_TexSubImage2D(a0, a1, a2, a3, a4, a5, a6, a7, a8); }
+static void w_307(void *rctx, unsigned int a0, int a1, int a2, int a3, int a4, int a5, unsigned int a6, unsigned int a7, void * a8) { SWEET_GLI_ENSURE(rctx); _mesa_TexSubImage2D(a0, a1, a2, a3, a4, a5, a6, a7, a8); }
 extern void _mesa_Translatef(float, float, float);
-static void w_309(void *rctx, float a0, float a1, float a2) { _mesa_Translatef(a0, a1, a2); }
+static void w_309(void *rctx, float a0, float a1, float a2) { SWEET_GLI_ENSURE(rctx); _mesa_Translatef(a0, a1, a2); }
 extern void _mesa_VertexPointer(int, unsigned int, int, void *);
-static void w_334(void *rctx, int a0, unsigned int a1, int a2, void * a3) { _mesa_VertexPointer(a0, a1, a2, a3); }
+static void w_334(void *rctx, int a0, unsigned int a1, int a2, void * a3) { SWEET_GLI_ENSURE(rctx); _mesa_VertexPointer(a0, a1, a2, a3); }
 extern void _mesa_Viewport(int, int, int, int);
-static void w_335(void *rctx, int a0, int a1, int a2, int a3) { _mesa_Viewport(a0, a1, a2, a3); }
+static void w_335(void *rctx, int a0, int a1, int a2, int a3) { SWEET_GLI_ENSURE(rctx); _mesa_Viewport(a0, a1, a2, a3); }
 extern void _mesa_BlendFuncSeparate(unsigned int, unsigned int, unsigned int, unsigned int);
-static void w_336(void *rctx, unsigned int a0, unsigned int a1, unsigned int a2, unsigned int a3) { _mesa_BlendFuncSeparate(a0, a1, a2, a3); }
+static void w_336(void *rctx, unsigned int a0, unsigned int a1, unsigned int a2, unsigned int a3) { SWEET_GLI_ENSURE(rctx); _mesa_BlendFuncSeparate(a0, a1, a2, a3); }
 extern void _mesa_BlendColor(float, float, float, float);
-static void w_337(void *rctx, float a0, float a1, float a2, float a3) { _mesa_BlendColor(a0, a1, a2, a3); }
+static void w_337(void *rctx, float a0, float a1, float a2, float a3) { SWEET_GLI_ENSURE(rctx); _mesa_BlendColor(a0, a1, a2, a3); }
 extern void _mesa_BlendEquation(unsigned int);
-static void w_338(void *rctx, unsigned int a0) { _mesa_BlendEquation(a0); }
+static void w_338(void *rctx, unsigned int a0) { SWEET_GLI_ENSURE(rctx); _mesa_BlendEquation(a0); }
 extern void _mesa_ClientActiveTexture(unsigned int);
-static void w_341(void *rctx, unsigned int a0) { _mesa_ClientActiveTexture(a0); }
+static void w_341(void *rctx, unsigned int a0) { SWEET_GLI_ENSURE(rctx); _mesa_ClientActiveTexture(a0); }
 extern void _mesa_ActiveTexture(unsigned int);
-static void w_342(void *rctx, unsigned int a0) { _mesa_ActiveTexture(a0); }
+static void w_342(void *rctx, unsigned int a0) { SWEET_GLI_ENSURE(rctx); _mesa_ActiveTexture(a0); }
 extern void _mesa_MultiTexCoord4fARB(unsigned int, float, float, float, float);
-static void w_369(void *rctx, unsigned int a0, float a1, float a2, float a3, float a4) { _mesa_MultiTexCoord4fARB(a0, a1, a2, a3, a4); }
+static void w_369(void *rctx, unsigned int a0, float a1, float a2, float a3, float a4) { SWEET_GLI_ENSURE(rctx); _mesa_MultiTexCoord4fARB(a0, a1, a2, a3, a4); }
 extern void _mesa_CompressedTexImage3D(unsigned int, int, unsigned int, int, int, int, int, int, void *);
-static void w_379(void *rctx, unsigned int a0, int a1, unsigned int a2, int a3, int a4, int a5, int a6, int a7, void * a8) { _mesa_CompressedTexImage3D(a0, a1, a2, a3, a4, a5, a6, a7, a8); }
+static void w_379(void *rctx, unsigned int a0, int a1, unsigned int a2, int a3, int a4, int a5, int a6, int a7, void * a8) { SWEET_GLI_ENSURE(rctx); _mesa_CompressedTexImage3D(a0, a1, a2, a3, a4, a5, a6, a7, a8); }
 extern void _mesa_CompressedTexImage2D(unsigned int, int, unsigned int, int, int, int, int, void *);
-static void w_380(void *rctx, unsigned int a0, int a1, unsigned int a2, int a3, int a4, int a5, int a6, void * a7) { _mesa_CompressedTexImage2D(a0, a1, a2, a3, a4, a5, a6, a7); }
+static void w_380(void *rctx, unsigned int a0, int a1, unsigned int a2, int a3, int a4, int a5, int a6, void * a7) { SWEET_GLI_ENSURE(rctx); _mesa_CompressedTexImage2D(a0, a1, a2, a3, a4, a5, a6, a7); }
 extern void _mesa_CompressedTexSubImage3D(unsigned int, int, int, int, int, int, int, int, unsigned int, int, void *);
-static void w_382(void *rctx, unsigned int a0, int a1, int a2, int a3, int a4, int a5, int a6, int a7, unsigned int a8, int a9, void * a10) { _mesa_CompressedTexSubImage3D(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10); }
+static void w_382(void *rctx, unsigned int a0, int a1, int a2, int a3, int a4, int a5, int a6, int a7, unsigned int a8, int a9, void * a10) { SWEET_GLI_ENSURE(rctx); _mesa_CompressedTexSubImage3D(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10); }
 extern void _mesa_CompressedTexSubImage2D(unsigned int, int, int, int, int, int, unsigned int, int, void *);
-static void w_383(void *rctx, unsigned int a0, int a1, int a2, int a3, int a4, int a5, unsigned int a6, int a7, void * a8) { _mesa_CompressedTexSubImage2D(a0, a1, a2, a3, a4, a5, a6, a7, a8); }
+static void w_383(void *rctx, unsigned int a0, int a1, int a2, int a3, int a4, int a5, unsigned int a6, int a7, void * a8) { SWEET_GLI_ENSURE(rctx); _mesa_CompressedTexSubImage2D(a0, a1, a2, a3, a4, a5, a6, a7, a8); }
 extern void _mesa_GetCompressedTexImage(unsigned int, int, void *);
-static void w_385(void *rctx, unsigned int a0, int a1, void * a2) { _mesa_GetCompressedTexImage(a0, a1, a2); }
+static void w_385(void *rctx, unsigned int a0, int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_GetCompressedTexImage(a0, a1, a2); }
 extern void _mesa_DrawRangeElements(unsigned int, unsigned int, unsigned int, int, unsigned int, void *);
-static void w_405(void *rctx, unsigned int a0, unsigned int a1, unsigned int a2, int a3, unsigned int a4, void * a5) { _mesa_DrawRangeElements(a0, a1, a2, a3, a4, a5); }
+static void w_405(void *rctx, unsigned int a0, unsigned int a1, unsigned int a2, int a3, unsigned int a4, void * a5) { SWEET_GLI_ENSURE(rctx); _mesa_DrawRangeElements(a0, a1, a2, a3, a4, a5); }
 extern void _mesa_TexImage3D(unsigned int, int, int, int, int, int, int, unsigned int, unsigned int, void *);
-static void w_438(void *rctx, unsigned int a0, int a1, int a2, int a3, int a4, int a5, int a6, unsigned int a7, unsigned int a8, void * a9) { _mesa_TexImage3D(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9); }
+static void w_438(void *rctx, unsigned int a0, int a1, int a2, int a3, int a4, int a5, int a6, unsigned int a7, unsigned int a8, void * a9) { SWEET_GLI_ENSURE(rctx); _mesa_TexImage3D(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9); }
 extern void _mesa_TexSubImage3D(unsigned int, int, int, int, int, int, int, int, unsigned int, unsigned int, void *);
-static void w_439(void *rctx, unsigned int a0, int a1, int a2, int a3, int a4, int a5, int a6, int a7, unsigned int a8, unsigned int a9, void * a10) { _mesa_TexSubImage3D(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10); }
+static void w_439(void *rctx, unsigned int a0, int a1, int a2, int a3, int a4, int a5, int a6, int a7, unsigned int a8, unsigned int a9, void * a10) { SWEET_GLI_ENSURE(rctx); _mesa_TexSubImage3D(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10); }
 extern void _mesa_CopyTexSubImage3D(unsigned int, int, int, int, int, int, int, int, int);
-static void w_440(void *rctx, unsigned int a0, int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8) { _mesa_CopyTexSubImage3D(a0, a1, a2, a3, a4, a5, a6, a7, a8); }
+static void w_440(void *rctx, unsigned int a0, int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8) { SWEET_GLI_ENSURE(rctx); _mesa_CopyTexSubImage3D(a0, a1, a2, a3, a4, a5, a6, a7, a8); }
 extern void _mesa_GetUniformIndices(unsigned int, int, void *, void *);
-static void w_441(void *rctx, unsigned int a0, int a1, void * a2, void * a3) { _mesa_GetUniformIndices(a0, a1, a2, a3); }
+static void w_441(void *rctx, unsigned int a0, int a1, void * a2, void * a3) { SWEET_GLI_ENSURE(rctx); _mesa_GetUniformIndices(a0, a1, a2, a3); }
 extern void _mesa_GetActiveUniformsiv(unsigned int, int, void *, unsigned int, void *);
-static void w_442(void *rctx, unsigned int a0, int a1, void * a2, unsigned int a3, void * a4) { _mesa_GetActiveUniformsiv(a0, a1, a2, a3, a4); }
+static void w_442(void *rctx, unsigned int a0, int a1, void * a2, unsigned int a3, void * a4) { SWEET_GLI_ENSURE(rctx); _mesa_GetActiveUniformsiv(a0, a1, a2, a3, a4); }
 extern unsigned int _mesa_GetUniformBlockIndex(unsigned int, void *);
-static unsigned int w_444(void *rctx, unsigned int a0, void * a1) { return _mesa_GetUniformBlockIndex(a0, a1); }
+static unsigned int w_444(void *rctx, unsigned int a0, void * a1) { SWEET_GLI_ENSURE(rctx); return _mesa_GetUniformBlockIndex(a0, a1); }
 extern void _mesa_GetActiveUniformBlockiv(unsigned int, unsigned int, unsigned int, void *);
-static void w_445(void *rctx, unsigned int a0, unsigned int a1, unsigned int a2, void * a3) { _mesa_GetActiveUniformBlockiv(a0, a1, a2, a3); }
+static void w_445(void *rctx, unsigned int a0, unsigned int a1, unsigned int a2, void * a3) { SWEET_GLI_ENSURE(rctx); _mesa_GetActiveUniformBlockiv(a0, a1, a2, a3); }
 extern void _mesa_GetActiveUniformBlockName(unsigned int, unsigned int, int, void *, void *);
-static void w_446(void *rctx, unsigned int a0, unsigned int a1, int a2, void * a3, void * a4) { _mesa_GetActiveUniformBlockName(a0, a1, a2, a3, a4); }
+static void w_446(void *rctx, unsigned int a0, unsigned int a1, int a2, void * a3, void * a4) { SWEET_GLI_ENSURE(rctx); _mesa_GetActiveUniformBlockName(a0, a1, a2, a3, a4); }
 extern void _mesa_UniformBlockBinding(unsigned int, unsigned int, unsigned int);
-static void w_447(void *rctx, unsigned int a0, unsigned int a1, unsigned int a2) { _mesa_UniformBlockBinding(a0, a1, a2); }
+static void w_447(void *rctx, unsigned int a0, unsigned int a1, unsigned int a2) { SWEET_GLI_ENSURE(rctx); _mesa_UniformBlockBinding(a0, a1, a2); }
 extern void _mesa_BlendEquationSeparate(unsigned int, unsigned int);
-static void w_458(void *rctx, unsigned int a0, unsigned int a1) { _mesa_BlendEquationSeparate(a0, a1); }
+static void w_458(void *rctx, unsigned int a0, unsigned int a1) { SWEET_GLI_ENSURE(rctx); _mesa_BlendEquationSeparate(a0, a1); }
 extern void _mesa_SampleCoverage(float, unsigned char);
-static void w_459(void *rctx, float a0, unsigned char a1) { _mesa_SampleCoverage(a0, a1); }
+static void w_459(void *rctx, float a0, unsigned char a1) { SWEET_GLI_ENSURE(rctx); _mesa_SampleCoverage(a0, a1); }
 extern void _mesa_VertexAttrib1fARB(unsigned int, float);
-static void w_476(void *rctx, unsigned int a0, float a1) { _mesa_VertexAttrib1fARB(a0, a1); }
+static void w_476(void *rctx, unsigned int a0, float a1) { SWEET_GLI_ENSURE(rctx); _mesa_VertexAttrib1fARB(a0, a1); }
 extern void _mesa_VertexAttrib2fARB(unsigned int, float, float);
-static void w_479(void *rctx, unsigned int a0, float a1, float a2) { _mesa_VertexAttrib2fARB(a0, a1, a2); }
+static void w_479(void *rctx, unsigned int a0, float a1, float a2) { SWEET_GLI_ENSURE(rctx); _mesa_VertexAttrib2fARB(a0, a1, a2); }
 extern void _mesa_VertexAttrib3fARB(unsigned int, float, float, float);
-static void w_482(void *rctx, unsigned int a0, float a1, float a2, float a3) { _mesa_VertexAttrib3fARB(a0, a1, a2, a3); }
+static void w_482(void *rctx, unsigned int a0, float a1, float a2, float a3) { SWEET_GLI_ENSURE(rctx); _mesa_VertexAttrib3fARB(a0, a1, a2, a3); }
 extern void _mesa_VertexAttrib4fARB(unsigned int, float, float, float, float);
-static void w_485(void *rctx, unsigned int a0, float a1, float a2, float a3, float a4) { _mesa_VertexAttrib4fARB(a0, a1, a2, a3, a4); }
+static void w_485(void *rctx, unsigned int a0, float a1, float a2, float a3, float a4) { SWEET_GLI_ENSURE(rctx); _mesa_VertexAttrib4fARB(a0, a1, a2, a3, a4); }
 extern void _mesa_VertexAttrib1fvARB(unsigned int, void *);
-static void w_489(void *rctx, unsigned int a0, void * a1) { _mesa_VertexAttrib1fvARB(a0, a1); }
+static void w_489(void *rctx, unsigned int a0, void * a1) { SWEET_GLI_ENSURE(rctx); _mesa_VertexAttrib1fvARB(a0, a1); }
 extern void _mesa_VertexAttrib2fvARB(unsigned int, void *);
-static void w_492(void *rctx, unsigned int a0, void * a1) { _mesa_VertexAttrib2fvARB(a0, a1); }
+static void w_492(void *rctx, unsigned int a0, void * a1) { SWEET_GLI_ENSURE(rctx); _mesa_VertexAttrib2fvARB(a0, a1); }
 extern void _mesa_VertexAttrib3fvARB(unsigned int, void *);
-static void w_495(void *rctx, unsigned int a0, void * a1) { _mesa_VertexAttrib3fvARB(a0, a1); }
+static void w_495(void *rctx, unsigned int a0, void * a1) { SWEET_GLI_ENSURE(rctx); _mesa_VertexAttrib3fvARB(a0, a1); }
 extern void _mesa_VertexAttrib4fvARB(unsigned int, void *);
-static void w_503(void *rctx, unsigned int a0, void * a1) { _mesa_VertexAttrib4fvARB(a0, a1); }
+static void w_503(void *rctx, unsigned int a0, void * a1) { SWEET_GLI_ENSURE(rctx); _mesa_VertexAttrib4fvARB(a0, a1); }
 extern void _mesa_VertexAttribPointer(unsigned int, int, unsigned int, unsigned char, int, void *);
-static void w_511(void *rctx, unsigned int a0, int a1, unsigned int a2, unsigned char a3, int a4, void * a5) { _mesa_VertexAttribPointer(a0, a1, a2, a3, a4, a5); }
+static void w_511(void *rctx, unsigned int a0, int a1, unsigned int a2, unsigned char a3, int a4, void * a5) { SWEET_GLI_ENSURE(rctx); _mesa_VertexAttribPointer(a0, a1, a2, a3, a4, a5); }
 extern void _mesa_EnableVertexAttribArray(unsigned int);
-static void w_512(void *rctx, unsigned int a0) { _mesa_EnableVertexAttribArray(a0); }
+static void w_512(void *rctx, unsigned int a0) { SWEET_GLI_ENSURE(rctx); _mesa_EnableVertexAttribArray(a0); }
 extern void _mesa_DisableVertexAttribArray(unsigned int);
-static void w_513(void *rctx, unsigned int a0) { _mesa_DisableVertexAttribArray(a0); }
+static void w_513(void *rctx, unsigned int a0) { SWEET_GLI_ENSURE(rctx); _mesa_DisableVertexAttribArray(a0); }
 extern void _mesa_GetVertexAttribfv(unsigned int, unsigned int, void *);
-static void w_515(void *rctx, unsigned int a0, unsigned int a1, void * a2) { _mesa_GetVertexAttribfv(a0, a1, a2); }
+static void w_515(void *rctx, unsigned int a0, unsigned int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_GetVertexAttribfv(a0, a1, a2); }
 extern void _mesa_GetVertexAttribiv(unsigned int, unsigned int, void *);
-static void w_516(void *rctx, unsigned int a0, unsigned int a1, void * a2) { _mesa_GetVertexAttribiv(a0, a1, a2); }
+static void w_516(void *rctx, unsigned int a0, unsigned int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_GetVertexAttribiv(a0, a1, a2); }
 extern void _mesa_GetVertexAttribPointerv(unsigned int, unsigned int, void *);
-static void w_517(void *rctx, unsigned int a0, unsigned int a1, void * a2) { _mesa_GetVertexAttribPointerv(a0, a1, a2); }
+static void w_517(void *rctx, unsigned int a0, unsigned int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_GetVertexAttribPointerv(a0, a1, a2); }
 extern void _mesa_PointParameterf(unsigned int, float);
-static void w_540(void *rctx, unsigned int a0, float a1) { _mesa_PointParameterf(a0, a1); }
+static void w_540(void *rctx, unsigned int a0, float a1) { SWEET_GLI_ENSURE(rctx); _mesa_PointParameterf(a0, a1); }
 extern void _mesa_PointParameterfv(unsigned int, void *);
-static void w_541(void *rctx, unsigned int a0, void * a1) { _mesa_PointParameterfv(a0, a1); }
+static void w_541(void *rctx, unsigned int a0, void * a1) { SWEET_GLI_ENSURE(rctx); _mesa_PointParameterfv(a0, a1); }
 extern void _mesa_StencilOpSeparate(unsigned int, unsigned int, unsigned int, unsigned int);
-static void w_586(void *rctx, unsigned int a0, unsigned int a1, unsigned int a2, unsigned int a3) { _mesa_StencilOpSeparate(a0, a1, a2, a3); }
+static void w_586(void *rctx, unsigned int a0, unsigned int a1, unsigned int a2, unsigned int a3) { SWEET_GLI_ENSURE(rctx); _mesa_StencilOpSeparate(a0, a1, a2, a3); }
 extern void _mesa_DetachShader(unsigned int, unsigned int);
-static void w_593(void *rctx, unsigned int a0, unsigned int a1) { _mesa_DetachShader(a0, a1); }
+static void w_593(void *rctx, unsigned int a0, unsigned int a1) { SWEET_GLI_ENSURE(rctx); _mesa_DetachShader(a0, a1); }
 extern unsigned int _mesa_CreateShader(unsigned int);
-static unsigned int w_594(void *rctx, unsigned int a0) { return _mesa_CreateShader(a0); }
+static unsigned int w_594(void *rctx, unsigned int a0) { SWEET_GLI_ENSURE(rctx); return _mesa_CreateShader(a0); }
 extern void _mesa_ShaderSource(unsigned int, int, void *, void *);
-static void w_595(void *rctx, unsigned int a0, int a1, void * a2, void * a3) { _mesa_ShaderSource(a0, a1, a2, a3); }
+static void w_595(void *rctx, unsigned int a0, int a1, void * a2, void * a3) { SWEET_GLI_ENSURE(rctx); _mesa_ShaderSource(a0, a1, a2, a3); }
 extern void _mesa_CompileShader(unsigned int);
-static void w_596(void *rctx, unsigned int a0) { _mesa_CompileShader(a0); }
+static void w_596(void *rctx, unsigned int a0) { SWEET_GLI_ENSURE(rctx); _mesa_CompileShader(a0); }
 extern unsigned int _mesa_CreateProgram(void);
-static unsigned int w_597(void *rctx) { return _mesa_CreateProgram(); }
+static unsigned int w_597(void *rctx) { SWEET_GLI_ENSURE(rctx); return _mesa_CreateProgram(); }
 extern void _mesa_AttachShader(unsigned int, unsigned int);
-static void w_598(void *rctx, unsigned int a0, unsigned int a1) { _mesa_AttachShader(a0, a1); }
+static void w_598(void *rctx, unsigned int a0, unsigned int a1) { SWEET_GLI_ENSURE(rctx); _mesa_AttachShader(a0, a1); }
 extern void _mesa_LinkProgram(unsigned int);
-static void w_599(void *rctx, unsigned int a0) { _mesa_LinkProgram(a0); }
+static void w_599(void *rctx, unsigned int a0) { SWEET_GLI_ENSURE(rctx); _mesa_LinkProgram(a0); }
 extern void _mesa_UseProgram(unsigned int);
-static void w_600(void *rctx, unsigned int a0) { _mesa_UseProgram(a0); }
+static void w_600(void *rctx, unsigned int a0) { SWEET_GLI_ENSURE(rctx); _mesa_UseProgram(a0); }
 extern void _mesa_ValidateProgram(unsigned int);
-static void w_601(void *rctx, unsigned int a0) { _mesa_ValidateProgram(a0); }
+static void w_601(void *rctx, unsigned int a0) { SWEET_GLI_ENSURE(rctx); _mesa_ValidateProgram(a0); }
 extern void _mesa_Uniform1f(int, float);
-static void w_602(void *rctx, int a0, float a1) { _mesa_Uniform1f(a0, a1); }
+static void w_602(void *rctx, int a0, float a1) { SWEET_GLI_ENSURE(rctx); _mesa_Uniform1f(a0, a1); }
 extern void _mesa_Uniform2f(int, float, float);
-static void w_603(void *rctx, int a0, float a1, float a2) { _mesa_Uniform2f(a0, a1, a2); }
+static void w_603(void *rctx, int a0, float a1, float a2) { SWEET_GLI_ENSURE(rctx); _mesa_Uniform2f(a0, a1, a2); }
 extern void _mesa_Uniform3f(int, float, float, float);
-static void w_604(void *rctx, int a0, float a1, float a2, float a3) { _mesa_Uniform3f(a0, a1, a2, a3); }
+static void w_604(void *rctx, int a0, float a1, float a2, float a3) { SWEET_GLI_ENSURE(rctx); _mesa_Uniform3f(a0, a1, a2, a3); }
 extern void _mesa_Uniform4f(int, float, float, float, float);
-static void w_605(void *rctx, int a0, float a1, float a2, float a3, float a4) { _mesa_Uniform4f(a0, a1, a2, a3, a4); }
+static void w_605(void *rctx, int a0, float a1, float a2, float a3, float a4) { SWEET_GLI_ENSURE(rctx); _mesa_Uniform4f(a0, a1, a2, a3, a4); }
 extern void _mesa_Uniform1i(int, int);
-static void w_606(void *rctx, int a0, int a1) { _mesa_Uniform1i(a0, a1); }
+static void w_606(void *rctx, int a0, int a1) { SWEET_GLI_ENSURE(rctx); _mesa_Uniform1i(a0, a1); }
 extern void _mesa_Uniform2i(int, int, int);
-static void w_607(void *rctx, int a0, int a1, int a2) { _mesa_Uniform2i(a0, a1, a2); }
+static void w_607(void *rctx, int a0, int a1, int a2) { SWEET_GLI_ENSURE(rctx); _mesa_Uniform2i(a0, a1, a2); }
 extern void _mesa_Uniform3i(int, int, int, int);
-static void w_608(void *rctx, int a0, int a1, int a2, int a3) { _mesa_Uniform3i(a0, a1, a2, a3); }
+static void w_608(void *rctx, int a0, int a1, int a2, int a3) { SWEET_GLI_ENSURE(rctx); _mesa_Uniform3i(a0, a1, a2, a3); }
 extern void _mesa_Uniform4i(int, int, int, int, int);
-static void w_609(void *rctx, int a0, int a1, int a2, int a3, int a4) { _mesa_Uniform4i(a0, a1, a2, a3, a4); }
+static void w_609(void *rctx, int a0, int a1, int a2, int a3, int a4) { SWEET_GLI_ENSURE(rctx); _mesa_Uniform4i(a0, a1, a2, a3, a4); }
 extern void _mesa_Uniform1fv(int, int, void *);
-static void w_610(void *rctx, int a0, int a1, void * a2) { _mesa_Uniform1fv(a0, a1, a2); }
+static void w_610(void *rctx, int a0, int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_Uniform1fv(a0, a1, a2); }
 extern void _mesa_Uniform2fv(int, int, void *);
-static void w_611(void *rctx, int a0, int a1, void * a2) { _mesa_Uniform2fv(a0, a1, a2); }
+static void w_611(void *rctx, int a0, int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_Uniform2fv(a0, a1, a2); }
 extern void _mesa_Uniform3fv(int, int, void *);
-static void w_612(void *rctx, int a0, int a1, void * a2) { _mesa_Uniform3fv(a0, a1, a2); }
+static void w_612(void *rctx, int a0, int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_Uniform3fv(a0, a1, a2); }
 extern void _mesa_Uniform4fv(int, int, void *);
-static void w_613(void *rctx, int a0, int a1, void * a2) { _mesa_Uniform4fv(a0, a1, a2); }
+static void w_613(void *rctx, int a0, int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_Uniform4fv(a0, a1, a2); }
 extern void _mesa_Uniform1iv(int, int, void *);
-static void w_614(void *rctx, int a0, int a1, void * a2) { _mesa_Uniform1iv(a0, a1, a2); }
+static void w_614(void *rctx, int a0, int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_Uniform1iv(a0, a1, a2); }
 extern void _mesa_Uniform2iv(int, int, void *);
-static void w_615(void *rctx, int a0, int a1, void * a2) { _mesa_Uniform2iv(a0, a1, a2); }
+static void w_615(void *rctx, int a0, int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_Uniform2iv(a0, a1, a2); }
 extern void _mesa_Uniform3iv(int, int, void *);
-static void w_616(void *rctx, int a0, int a1, void * a2) { _mesa_Uniform3iv(a0, a1, a2); }
+static void w_616(void *rctx, int a0, int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_Uniform3iv(a0, a1, a2); }
 extern void _mesa_Uniform4iv(int, int, void *);
-static void w_617(void *rctx, int a0, int a1, void * a2) { _mesa_Uniform4iv(a0, a1, a2); }
+static void w_617(void *rctx, int a0, int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_Uniform4iv(a0, a1, a2); }
 extern void _mesa_UniformMatrix2fv(int, int, unsigned char, void *);
-static void w_618(void *rctx, int a0, int a1, unsigned char a2, void * a3) { _mesa_UniformMatrix2fv(a0, a1, a2, a3); }
+static void w_618(void *rctx, int a0, int a1, unsigned char a2, void * a3) { SWEET_GLI_ENSURE(rctx); _mesa_UniformMatrix2fv(a0, a1, a2, a3); }
 extern void _mesa_UniformMatrix3fv(int, int, unsigned char, void *);
-static void w_619(void *rctx, int a0, int a1, unsigned char a2, void * a3) { _mesa_UniformMatrix3fv(a0, a1, a2, a3); }
+static void w_619(void *rctx, int a0, int a1, unsigned char a2, void * a3) { SWEET_GLI_ENSURE(rctx); _mesa_UniformMatrix3fv(a0, a1, a2, a3); }
 extern void _mesa_UniformMatrix4fv(int, int, unsigned char, void *);
-static void w_620(void *rctx, int a0, int a1, unsigned char a2, void * a3) { _mesa_UniformMatrix4fv(a0, a1, a2, a3); }
+static void w_620(void *rctx, int a0, int a1, unsigned char a2, void * a3) { SWEET_GLI_ENSURE(rctx); _mesa_UniformMatrix4fv(a0, a1, a2, a3); }
 extern int _mesa_GetUniformLocation(unsigned int, void *);
-static int w_625(void *rctx, unsigned int a0, void * a1) { return _mesa_GetUniformLocation(a0, a1); }
+static int w_625(void *rctx, unsigned int a0, void * a1) { SWEET_GLI_ENSURE(rctx); return _mesa_GetUniformLocation(a0, a1); }
 extern void _mesa_GetActiveUniform(unsigned int, unsigned int, int, void *, void *, void *, void *);
-static void w_626(void *rctx, unsigned int a0, unsigned int a1, int a2, void * a3, void * a4, void * a5, void * a6) { _mesa_GetActiveUniform(a0, a1, a2, a3, a4, a5, a6); }
+static void w_626(void *rctx, unsigned int a0, unsigned int a1, int a2, void * a3, void * a4, void * a5, void * a6) { SWEET_GLI_ENSURE(rctx); _mesa_GetActiveUniform(a0, a1, a2, a3, a4, a5, a6); }
 extern void _mesa_GetUniformfv(unsigned int, int, void *);
-static void w_627(void *rctx, unsigned int a0, int a1, void * a2) { _mesa_GetUniformfv(a0, a1, a2); }
+static void w_627(void *rctx, unsigned int a0, int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_GetUniformfv(a0, a1, a2); }
 extern void _mesa_GetUniformiv(unsigned int, int, void *);
-static void w_628(void *rctx, unsigned int a0, int a1, void * a2) { _mesa_GetUniformiv(a0, a1, a2); }
+static void w_628(void *rctx, unsigned int a0, int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_GetUniformiv(a0, a1, a2); }
 extern void _mesa_GetShaderSource(unsigned int, int, void *, void *);
-static void w_629(void *rctx, unsigned int a0, int a1, void * a2, void * a3) { _mesa_GetShaderSource(a0, a1, a2, a3); }
+static void w_629(void *rctx, unsigned int a0, int a1, void * a2, void * a3) { SWEET_GLI_ENSURE(rctx); _mesa_GetShaderSource(a0, a1, a2, a3); }
 extern void _mesa_BindAttribLocation(unsigned int, unsigned int, void *);
-static void w_630(void *rctx, unsigned int a0, unsigned int a1, void * a2) { _mesa_BindAttribLocation(a0, a1, a2); }
+static void w_630(void *rctx, unsigned int a0, unsigned int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_BindAttribLocation(a0, a1, a2); }
 extern void _mesa_GetActiveAttrib(unsigned int, unsigned int, int, void *, void *, void *, void *);
-static void w_631(void *rctx, unsigned int a0, unsigned int a1, int a2, void * a3, void * a4, void * a5, void * a6) { _mesa_GetActiveAttrib(a0, a1, a2, a3, a4, a5, a6); }
+static void w_631(void *rctx, unsigned int a0, unsigned int a1, int a2, void * a3, void * a4, void * a5, void * a6) { SWEET_GLI_ENSURE(rctx); _mesa_GetActiveAttrib(a0, a1, a2, a3, a4, a5, a6); }
 extern int _mesa_GetAttribLocation(unsigned int, void *);
-static int w_632(void *rctx, unsigned int a0, void * a1) { return _mesa_GetAttribLocation(a0, a1); }
+static int w_632(void *rctx, unsigned int a0, void * a1) { SWEET_GLI_ENSURE(rctx); return _mesa_GetAttribLocation(a0, a1); }
 extern void _mesa_GenQueries(int, void *);
-static void w_634(void *rctx, int a0, void * a1) { _mesa_GenQueries(a0, a1); }
+static void w_634(void *rctx, int a0, void * a1) { SWEET_GLI_ENSURE(rctx); _mesa_GenQueries(a0, a1); }
 extern void _mesa_DeleteQueries(int, void *);
-static void w_635(void *rctx, int a0, void * a1) { _mesa_DeleteQueries(a0, a1); }
+static void w_635(void *rctx, int a0, void * a1) { SWEET_GLI_ENSURE(rctx); _mesa_DeleteQueries(a0, a1); }
 extern unsigned char _mesa_IsQuery(unsigned int);
-static unsigned char w_636(void *rctx, unsigned int a0) { return _mesa_IsQuery(a0); }
+static unsigned char w_636(void *rctx, unsigned int a0) { SWEET_GLI_ENSURE(rctx); return _mesa_IsQuery(a0); }
 extern void _mesa_BeginQuery(unsigned int, unsigned int);
-static void w_637(void *rctx, unsigned int a0, unsigned int a1) { _mesa_BeginQuery(a0, a1); }
+static void w_637(void *rctx, unsigned int a0, unsigned int a1) { SWEET_GLI_ENSURE(rctx); _mesa_BeginQuery(a0, a1); }
 extern void _mesa_EndQuery(unsigned int);
-static void w_638(void *rctx, unsigned int a0) { _mesa_EndQuery(a0); }
+static void w_638(void *rctx, unsigned int a0) { SWEET_GLI_ENSURE(rctx); _mesa_EndQuery(a0); }
 extern void _mesa_GetQueryiv(unsigned int, unsigned int, void *);
-static void w_639(void *rctx, unsigned int a0, unsigned int a1, void * a2) { _mesa_GetQueryiv(a0, a1, a2); }
+static void w_639(void *rctx, unsigned int a0, unsigned int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_GetQueryiv(a0, a1, a2); }
 extern void _mesa_GetQueryObjectiv(unsigned int, unsigned int, void *);
-static void w_640(void *rctx, unsigned int a0, unsigned int a1, void * a2) { _mesa_GetQueryObjectiv(a0, a1, a2); }
+static void w_640(void *rctx, unsigned int a0, unsigned int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_GetQueryObjectiv(a0, a1, a2); }
 extern void _mesa_GetQueryObjectuiv(unsigned int, unsigned int, void *);
-static void w_641(void *rctx, unsigned int a0, unsigned int a1, void * a2) { _mesa_GetQueryObjectuiv(a0, a1, a2); }
+static void w_641(void *rctx, unsigned int a0, unsigned int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_GetQueryObjectuiv(a0, a1, a2); }
 extern void _mesa_BindBuffer(unsigned int, unsigned int);
-static void w_642(void *rctx, unsigned int a0, unsigned int a1) { _mesa_BindBuffer(a0, a1); }
+static void w_642(void *rctx, unsigned int a0, unsigned int a1) { SWEET_GLI_ENSURE(rctx); _mesa_BindBuffer(a0, a1); }
 extern void _mesa_DeleteBuffers(int, void *);
-static void w_643(void *rctx, int a0, void * a1) { _mesa_DeleteBuffers(a0, a1); }
+static void w_643(void *rctx, int a0, void * a1) { SWEET_GLI_ENSURE(rctx); _mesa_DeleteBuffers(a0, a1); }
 extern void _mesa_GenBuffers(int, void *);
-static void w_644(void *rctx, int a0, void * a1) { _mesa_GenBuffers(a0, a1); }
+static void w_644(void *rctx, int a0, void * a1) { SWEET_GLI_ENSURE(rctx); _mesa_GenBuffers(a0, a1); }
 extern unsigned char _mesa_IsBuffer(unsigned int);
-static unsigned char w_645(void *rctx, unsigned int a0) { return _mesa_IsBuffer(a0); }
+static unsigned char w_645(void *rctx, unsigned int a0) { SWEET_GLI_ENSURE(rctx); return _mesa_IsBuffer(a0); }
 extern void _mesa_BufferData(unsigned int, long, void *, unsigned int);
-static void w_646(void *rctx, unsigned int a0, long a1, void * a2, unsigned int a3) { _mesa_BufferData(a0, a1, a2, a3); }
+static void w_646(void *rctx, unsigned int a0, long a1, void * a2, unsigned int a3) { SWEET_GLI_ENSURE(rctx); _mesa_BufferData(a0, a1, a2, a3); }
 extern void _mesa_BufferSubData(unsigned int, long, long, void *);
-static void w_647(void *rctx, unsigned int a0, long a1, long a2, void * a3) { _mesa_BufferSubData(a0, a1, a2, a3); }
+static void w_647(void *rctx, unsigned int a0, long a1, long a2, void * a3) { SWEET_GLI_ENSURE(rctx); _mesa_BufferSubData(a0, a1, a2, a3); }
 extern void * _mesa_MapBuffer(unsigned int, unsigned int);
-static void * w_649(void *rctx, unsigned int a0, unsigned int a1) { return _mesa_MapBuffer(a0, a1); }
+static void * w_649(void *rctx, unsigned int a0, unsigned int a1) { SWEET_GLI_ENSURE(rctx); return _mesa_MapBuffer(a0, a1); }
 extern unsigned char _mesa_UnmapBuffer(unsigned int);
-static unsigned char w_650(void *rctx, unsigned int a0) { return _mesa_UnmapBuffer(a0); }
+static unsigned char w_650(void *rctx, unsigned int a0) { SWEET_GLI_ENSURE(rctx); return _mesa_UnmapBuffer(a0); }
 extern void _mesa_GetBufferParameteriv(unsigned int, unsigned int, void *);
-static void w_651(void *rctx, unsigned int a0, unsigned int a1, void * a2) { _mesa_GetBufferParameteriv(a0, a1, a2); }
+static void w_651(void *rctx, unsigned int a0, unsigned int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_GetBufferParameteriv(a0, a1, a2); }
 extern void _mesa_GetBufferPointerv(unsigned int, unsigned int, void *);
-static void w_652(void *rctx, unsigned int a0, unsigned int a1, void * a2) { _mesa_GetBufferPointerv(a0, a1, a2); }
+static void w_652(void *rctx, unsigned int a0, unsigned int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_GetBufferPointerv(a0, a1, a2); }
 extern void _mesa_DrawBuffers(int, void *);
-static void w_654(void *rctx, int a0, void * a1) { _mesa_DrawBuffers(a0, a1); }
+static void w_654(void *rctx, int a0, void * a1) { SWEET_GLI_ENSURE(rctx); _mesa_DrawBuffers(a0, a1); }
 extern unsigned char _mesa_IsShader(unsigned int);
-static unsigned char w_655(void *rctx, unsigned int a0) { return _mesa_IsShader(a0); }
+static unsigned char w_655(void *rctx, unsigned int a0) { SWEET_GLI_ENSURE(rctx); return _mesa_IsShader(a0); }
 extern unsigned char _mesa_IsProgram(unsigned int);
-static unsigned char w_656(void *rctx, unsigned int a0) { return _mesa_IsProgram(a0); }
+static unsigned char w_656(void *rctx, unsigned int a0) { SWEET_GLI_ENSURE(rctx); return _mesa_IsProgram(a0); }
 extern void _mesa_GetShaderiv(unsigned int, unsigned int, void *);
-static void w_657(void *rctx, unsigned int a0, unsigned int a1, void * a2) { _mesa_GetShaderiv(a0, a1, a2); }
+static void w_657(void *rctx, unsigned int a0, unsigned int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_GetShaderiv(a0, a1, a2); }
 extern void _mesa_GetProgramiv(unsigned int, unsigned int, void *);
-static void w_658(void *rctx, unsigned int a0, unsigned int a1, void * a2) { _mesa_GetProgramiv(a0, a1, a2); }
+static void w_658(void *rctx, unsigned int a0, unsigned int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_GetProgramiv(a0, a1, a2); }
 extern void _mesa_GetShaderInfoLog(unsigned int, int, void *, void *);
-static void w_659(void *rctx, unsigned int a0, int a1, void * a2, void * a3) { _mesa_GetShaderInfoLog(a0, a1, a2, a3); }
+static void w_659(void *rctx, unsigned int a0, int a1, void * a2, void * a3) { SWEET_GLI_ENSURE(rctx); _mesa_GetShaderInfoLog(a0, a1, a2, a3); }
 extern void _mesa_GetProgramInfoLog(unsigned int, int, void *, void *);
-static void w_660(void *rctx, unsigned int a0, int a1, void * a2, void * a3) { _mesa_GetProgramInfoLog(a0, a1, a2, a3); }
+static void w_660(void *rctx, unsigned int a0, int a1, void * a2, void * a3) { SWEET_GLI_ENSURE(rctx); _mesa_GetProgramInfoLog(a0, a1, a2, a3); }
 extern void _mesa_StencilFuncSeparate(unsigned int, unsigned int, int, unsigned int);
-static void w_661(void *rctx, unsigned int a0, unsigned int a1, int a2, unsigned int a3) { _mesa_StencilFuncSeparate(a0, a1, a2, a3); }
+static void w_661(void *rctx, unsigned int a0, unsigned int a1, int a2, unsigned int a3) { SWEET_GLI_ENSURE(rctx); _mesa_StencilFuncSeparate(a0, a1, a2, a3); }
 extern void _mesa_StencilMaskSeparate(unsigned int, unsigned int);
-static void w_662(void *rctx, unsigned int a0, unsigned int a1) { _mesa_StencilMaskSeparate(a0, a1); }
+static void w_662(void *rctx, unsigned int a0, unsigned int a1) { SWEET_GLI_ENSURE(rctx); _mesa_StencilMaskSeparate(a0, a1); }
 extern unsigned char _mesa_IsRenderbuffer(unsigned int);
-static unsigned char w_665(void *rctx, unsigned int a0) { return _mesa_IsRenderbuffer(a0); }
+static unsigned char w_665(void *rctx, unsigned int a0) { SWEET_GLI_ENSURE(rctx); return _mesa_IsRenderbuffer(a0); }
 extern void _mesa_BindRenderbuffer(unsigned int, unsigned int);
-static void w_666(void *rctx, unsigned int a0, unsigned int a1) { _mesa_BindRenderbuffer(a0, a1); }
+static void w_666(void *rctx, unsigned int a0, unsigned int a1) { SWEET_GLI_ENSURE(rctx); _mesa_BindRenderbuffer(a0, a1); }
 extern void _mesa_DeleteRenderbuffers(int, void *);
-static void w_667(void *rctx, int a0, void * a1) { _mesa_DeleteRenderbuffers(a0, a1); }
+static void w_667(void *rctx, int a0, void * a1) { SWEET_GLI_ENSURE(rctx); _mesa_DeleteRenderbuffers(a0, a1); }
 extern void _mesa_GenRenderbuffers(int, void *);
-static void w_668(void *rctx, int a0, void * a1) { _mesa_GenRenderbuffers(a0, a1); }
+static void w_668(void *rctx, int a0, void * a1) { SWEET_GLI_ENSURE(rctx); _mesa_GenRenderbuffers(a0, a1); }
 extern void _mesa_RenderbufferStorage(unsigned int, unsigned int, int, int);
-static void w_669(void *rctx, unsigned int a0, unsigned int a1, int a2, int a3) { _mesa_RenderbufferStorage(a0, a1, a2, a3); }
+static void w_669(void *rctx, unsigned int a0, unsigned int a1, int a2, int a3) { SWEET_GLI_ENSURE(rctx); _mesa_RenderbufferStorage(a0, a1, a2, a3); }
 extern void _mesa_GetRenderbufferParameteriv(unsigned int, unsigned int, void *);
-static void w_670(void *rctx, unsigned int a0, unsigned int a1, void * a2) { _mesa_GetRenderbufferParameteriv(a0, a1, a2); }
+static void w_670(void *rctx, unsigned int a0, unsigned int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_GetRenderbufferParameteriv(a0, a1, a2); }
 extern unsigned char _mesa_IsFramebuffer(unsigned int);
-static unsigned char w_671(void *rctx, unsigned int a0) { return _mesa_IsFramebuffer(a0); }
+static unsigned char w_671(void *rctx, unsigned int a0) { SWEET_GLI_ENSURE(rctx); return _mesa_IsFramebuffer(a0); }
 extern void _mesa_BindFramebuffer(unsigned int, unsigned int);
-static void w_672(void *rctx, unsigned int a0, unsigned int a1) { _mesa_BindFramebuffer(a0, a1); }
+static void w_672(void *rctx, unsigned int a0, unsigned int a1) { SWEET_GLI_ENSURE(rctx); _mesa_BindFramebuffer(a0, a1); }
 extern void _mesa_DeleteFramebuffers(int, void *);
-static void w_673(void *rctx, int a0, void * a1) { _mesa_DeleteFramebuffers(a0, a1); }
+static void w_673(void *rctx, int a0, void * a1) { SWEET_GLI_ENSURE(rctx); _mesa_DeleteFramebuffers(a0, a1); }
 extern void _mesa_GenFramebuffers(int, void *);
-static void w_674(void *rctx, int a0, void * a1) { _mesa_GenFramebuffers(a0, a1); }
+static void w_674(void *rctx, int a0, void * a1) { SWEET_GLI_ENSURE(rctx); _mesa_GenFramebuffers(a0, a1); }
 extern unsigned int _mesa_CheckFramebufferStatus(unsigned int);
-static unsigned int w_675(void *rctx, unsigned int a0) { return _mesa_CheckFramebufferStatus(a0); }
+static unsigned int w_675(void *rctx, unsigned int a0) { SWEET_GLI_ENSURE(rctx); return _mesa_CheckFramebufferStatus(a0); }
 extern void _mesa_FramebufferTexture2D(unsigned int, unsigned int, unsigned int, unsigned int, int);
-static void w_677(void *rctx, unsigned int a0, unsigned int a1, unsigned int a2, unsigned int a3, int a4) { _mesa_FramebufferTexture2D(a0, a1, a2, a3, a4); }
+static void w_677(void *rctx, unsigned int a0, unsigned int a1, unsigned int a2, unsigned int a3, int a4) { SWEET_GLI_ENSURE(rctx); _mesa_FramebufferTexture2D(a0, a1, a2, a3, a4); }
 extern void _mesa_FramebufferRenderbuffer(unsigned int, unsigned int, unsigned int, unsigned int);
-static void w_679(void *rctx, unsigned int a0, unsigned int a1, unsigned int a2, unsigned int a3) { _mesa_FramebufferRenderbuffer(a0, a1, a2, a3); }
+static void w_679(void *rctx, unsigned int a0, unsigned int a1, unsigned int a2, unsigned int a3) { SWEET_GLI_ENSURE(rctx); _mesa_FramebufferRenderbuffer(a0, a1, a2, a3); }
 extern void _mesa_GetFramebufferAttachmentParameteriv(unsigned int, unsigned int, unsigned int, void *);
-static void w_680(void *rctx, unsigned int a0, unsigned int a1, unsigned int a2, void * a3) { _mesa_GetFramebufferAttachmentParameteriv(a0, a1, a2, a3); }
+static void w_680(void *rctx, unsigned int a0, unsigned int a1, unsigned int a2, void * a3) { SWEET_GLI_ENSURE(rctx); _mesa_GetFramebufferAttachmentParameteriv(a0, a1, a2, a3); }
 extern void _mesa_GenerateMipmap(unsigned int);
-static void w_681(void *rctx, unsigned int a0) { _mesa_GenerateMipmap(a0); }
+static void w_681(void *rctx, unsigned int a0) { SWEET_GLI_ENSURE(rctx); _mesa_GenerateMipmap(a0); }
 extern void _mesa_ProgramParameteri(unsigned int, unsigned int, int);
-static void w_689(void *rctx, unsigned int a0, unsigned int a1, int a2) { _mesa_ProgramParameteri(a0, a1, a2); }
+static void w_689(void *rctx, unsigned int a0, unsigned int a1, int a2) { SWEET_GLI_ENSURE(rctx); _mesa_ProgramParameteri(a0, a1, a2); }
 extern void _mesa_FramebufferTextureLayer(unsigned int, unsigned int, unsigned int, int, int);
-static void w_691(void *rctx, unsigned int a0, unsigned int a1, unsigned int a2, int a3, int a4) { _mesa_FramebufferTextureLayer(a0, a1, a2, a3, a4); }
+static void w_691(void *rctx, unsigned int a0, unsigned int a1, unsigned int a2, int a3, int a4) { SWEET_GLI_ENSURE(rctx); _mesa_FramebufferTextureLayer(a0, a1, a2, a3, a4); }
 extern void _mesa_BindBufferRange(unsigned int, unsigned int, unsigned int, long, long);
-static void w_693(void *rctx, unsigned int a0, unsigned int a1, unsigned int a2, long a3, long a4) { _mesa_BindBufferRange(a0, a1, a2, a3, a4); }
+static void w_693(void *rctx, unsigned int a0, unsigned int a1, unsigned int a2, long a3, long a4) { SWEET_GLI_ENSURE(rctx); _mesa_BindBufferRange(a0, a1, a2, a3, a4); }
 extern void _mesa_BindBufferBase(unsigned int, unsigned int, unsigned int);
-static void w_695(void *rctx, unsigned int a0, unsigned int a1, unsigned int a2) { _mesa_BindBufferBase(a0, a1, a2); }
+static void w_695(void *rctx, unsigned int a0, unsigned int a1, unsigned int a2) { SWEET_GLI_ENSURE(rctx); _mesa_BindBufferBase(a0, a1, a2); }
 extern void _mesa_BeginTransformFeedback(unsigned int);
-static void w_696(void *rctx, unsigned int a0) { _mesa_BeginTransformFeedback(a0); }
+static void w_696(void *rctx, unsigned int a0) { SWEET_GLI_ENSURE(rctx); _mesa_BeginTransformFeedback(a0); }
 extern void _mesa_EndTransformFeedback(void);
-static void w_697(void *rctx) { _mesa_EndTransformFeedback(); }
+static void w_697(void *rctx) { SWEET_GLI_ENSURE(rctx); _mesa_EndTransformFeedback(); }
 extern void _mesa_TransformFeedbackVaryings(unsigned int, int, void *, unsigned int);
-static void w_698(void *rctx, unsigned int a0, int a1, void * a2, unsigned int a3) { _mesa_TransformFeedbackVaryings(a0, a1, a2, a3); }
+static void w_698(void *rctx, unsigned int a0, int a1, void * a2, unsigned int a3) { SWEET_GLI_ENSURE(rctx); _mesa_TransformFeedbackVaryings(a0, a1, a2, a3); }
 extern void _mesa_GetTransformFeedbackVarying(unsigned int, unsigned int, int, void *, void *, void *, void *);
-static void w_699(void *rctx, unsigned int a0, unsigned int a1, int a2, void * a3, void * a4, void * a5, void * a6) { _mesa_GetTransformFeedbackVarying(a0, a1, a2, a3, a4, a5, a6); }
+static void w_699(void *rctx, unsigned int a0, unsigned int a1, int a2, void * a3, void * a4, void * a5, void * a6) { SWEET_GLI_ENSURE(rctx); _mesa_GetTransformFeedbackVarying(a0, a1, a2, a3, a4, a5, a6); }
 extern void _mesa_GetIntegeri_v(unsigned int, unsigned int, void *);
-static void w_700(void *rctx, unsigned int a0, unsigned int a1, void * a2) { _mesa_GetIntegeri_v(a0, a1, a2); }
+static void w_700(void *rctx, unsigned int a0, unsigned int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_GetIntegeri_v(a0, a1, a2); }
 extern void _mesa_VertexAttribI4iEXT(unsigned int, int, int, int, int);
-static void w_714(void *rctx, unsigned int a0, int a1, int a2, int a3, int a4) { _mesa_VertexAttribI4iEXT(a0, a1, a2, a3, a4); }
+static void w_714(void *rctx, unsigned int a0, int a1, int a2, int a3, int a4) { SWEET_GLI_ENSURE(rctx); _mesa_VertexAttribI4iEXT(a0, a1, a2, a3, a4); }
 extern void _mesa_VertexAttribI4uiEXT(unsigned int, unsigned int, unsigned int, unsigned int, unsigned int);
-static void w_718(void *rctx, unsigned int a0, unsigned int a1, unsigned int a2, unsigned int a3, unsigned int a4) { _mesa_VertexAttribI4uiEXT(a0, a1, a2, a3, a4); }
+static void w_718(void *rctx, unsigned int a0, unsigned int a1, unsigned int a2, unsigned int a3, unsigned int a4) { SWEET_GLI_ENSURE(rctx); _mesa_VertexAttribI4uiEXT(a0, a1, a2, a3, a4); }
 extern void _mesa_VertexAttribI4ivEXT(unsigned int, void *);
-static void w_722(void *rctx, unsigned int a0, void * a1) { _mesa_VertexAttribI4ivEXT(a0, a1); }
+static void w_722(void *rctx, unsigned int a0, void * a1) { SWEET_GLI_ENSURE(rctx); _mesa_VertexAttribI4ivEXT(a0, a1); }
 extern void _mesa_VertexAttribI4uivEXT(unsigned int, void *);
-static void w_726(void *rctx, unsigned int a0, void * a1) { _mesa_VertexAttribI4uivEXT(a0, a1); }
+static void w_726(void *rctx, unsigned int a0, void * a1) { SWEET_GLI_ENSURE(rctx); _mesa_VertexAttribI4uivEXT(a0, a1); }
 extern void _mesa_VertexAttribIPointer(unsigned int, int, unsigned int, int, void *);
-static void w_731(void *rctx, unsigned int a0, int a1, unsigned int a2, int a3, void * a4) { _mesa_VertexAttribIPointer(a0, a1, a2, a3, a4); }
+static void w_731(void *rctx, unsigned int a0, int a1, unsigned int a2, int a3, void * a4) { SWEET_GLI_ENSURE(rctx); _mesa_VertexAttribIPointer(a0, a1, a2, a3, a4); }
 extern void _mesa_GetVertexAttribIiv(unsigned int, unsigned int, void *);
-static void w_732(void *rctx, unsigned int a0, unsigned int a1, void * a2) { _mesa_GetVertexAttribIiv(a0, a1, a2); }
+static void w_732(void *rctx, unsigned int a0, unsigned int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_GetVertexAttribIiv(a0, a1, a2); }
 extern void _mesa_GetVertexAttribIuiv(unsigned int, unsigned int, void *);
-static void w_733(void *rctx, unsigned int a0, unsigned int a1, void * a2) { _mesa_GetVertexAttribIuiv(a0, a1, a2); }
+static void w_733(void *rctx, unsigned int a0, unsigned int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_GetVertexAttribIuiv(a0, a1, a2); }
 extern void _mesa_Uniform1ui(int, unsigned int);
-static void w_734(void *rctx, int a0, unsigned int a1) { _mesa_Uniform1ui(a0, a1); }
+static void w_734(void *rctx, int a0, unsigned int a1) { SWEET_GLI_ENSURE(rctx); _mesa_Uniform1ui(a0, a1); }
 extern void _mesa_Uniform2ui(int, unsigned int, unsigned int);
-static void w_735(void *rctx, int a0, unsigned int a1, unsigned int a2) { _mesa_Uniform2ui(a0, a1, a2); }
+static void w_735(void *rctx, int a0, unsigned int a1, unsigned int a2) { SWEET_GLI_ENSURE(rctx); _mesa_Uniform2ui(a0, a1, a2); }
 extern void _mesa_Uniform3ui(int, unsigned int, unsigned int, unsigned int);
-static void w_736(void *rctx, int a0, unsigned int a1, unsigned int a2, unsigned int a3) { _mesa_Uniform3ui(a0, a1, a2, a3); }
+static void w_736(void *rctx, int a0, unsigned int a1, unsigned int a2, unsigned int a3) { SWEET_GLI_ENSURE(rctx); _mesa_Uniform3ui(a0, a1, a2, a3); }
 extern void _mesa_Uniform4ui(int, unsigned int, unsigned int, unsigned int, unsigned int);
-static void w_737(void *rctx, int a0, unsigned int a1, unsigned int a2, unsigned int a3, unsigned int a4) { _mesa_Uniform4ui(a0, a1, a2, a3, a4); }
+static void w_737(void *rctx, int a0, unsigned int a1, unsigned int a2, unsigned int a3, unsigned int a4) { SWEET_GLI_ENSURE(rctx); _mesa_Uniform4ui(a0, a1, a2, a3, a4); }
 extern void _mesa_Uniform1uiv(int, int, void *);
-static void w_738(void *rctx, int a0, int a1, void * a2) { _mesa_Uniform1uiv(a0, a1, a2); }
+static void w_738(void *rctx, int a0, int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_Uniform1uiv(a0, a1, a2); }
 extern void _mesa_Uniform2uiv(int, int, void *);
-static void w_739(void *rctx, int a0, int a1, void * a2) { _mesa_Uniform2uiv(a0, a1, a2); }
+static void w_739(void *rctx, int a0, int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_Uniform2uiv(a0, a1, a2); }
 extern void _mesa_Uniform3uiv(int, int, void *);
-static void w_740(void *rctx, int a0, int a1, void * a2) { _mesa_Uniform3uiv(a0, a1, a2); }
+static void w_740(void *rctx, int a0, int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_Uniform3uiv(a0, a1, a2); }
 extern void _mesa_Uniform4uiv(int, int, void *);
-static void w_741(void *rctx, int a0, int a1, void * a2) { _mesa_Uniform4uiv(a0, a1, a2); }
+static void w_741(void *rctx, int a0, int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_Uniform4uiv(a0, a1, a2); }
 extern void _mesa_GetUniformuiv(unsigned int, int, void *);
-static void w_742(void *rctx, unsigned int a0, int a1, void * a2) { _mesa_GetUniformuiv(a0, a1, a2); }
+static void w_742(void *rctx, unsigned int a0, int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_GetUniformuiv(a0, a1, a2); }
 extern int _mesa_GetFragDataLocation(unsigned int, void *);
-static int w_744(void *rctx, unsigned int a0, void * a1) { return _mesa_GetFragDataLocation(a0, a1); }
+static int w_744(void *rctx, unsigned int a0, void * a1) { SWEET_GLI_ENSURE(rctx); return _mesa_GetFragDataLocation(a0, a1); }
 extern void _mesa_UniformMatrix2x3fv(int, int, unsigned char, void *);
-static void w_749(void *rctx, int a0, int a1, unsigned char a2, void * a3) { _mesa_UniformMatrix2x3fv(a0, a1, a2, a3); }
+static void w_749(void *rctx, int a0, int a1, unsigned char a2, void * a3) { SWEET_GLI_ENSURE(rctx); _mesa_UniformMatrix2x3fv(a0, a1, a2, a3); }
 extern void _mesa_UniformMatrix3x2fv(int, int, unsigned char, void *);
-static void w_750(void *rctx, int a0, int a1, unsigned char a2, void * a3) { _mesa_UniformMatrix3x2fv(a0, a1, a2, a3); }
+static void w_750(void *rctx, int a0, int a1, unsigned char a2, void * a3) { SWEET_GLI_ENSURE(rctx); _mesa_UniformMatrix3x2fv(a0, a1, a2, a3); }
 extern void _mesa_UniformMatrix2x4fv(int, int, unsigned char, void *);
-static void w_751(void *rctx, int a0, int a1, unsigned char a2, void * a3) { _mesa_UniformMatrix2x4fv(a0, a1, a2, a3); }
+static void w_751(void *rctx, int a0, int a1, unsigned char a2, void * a3) { SWEET_GLI_ENSURE(rctx); _mesa_UniformMatrix2x4fv(a0, a1, a2, a3); }
 extern void _mesa_UniformMatrix4x2fv(int, int, unsigned char, void *);
-static void w_752(void *rctx, int a0, int a1, unsigned char a2, void * a3) { _mesa_UniformMatrix4x2fv(a0, a1, a2, a3); }
+static void w_752(void *rctx, int a0, int a1, unsigned char a2, void * a3) { SWEET_GLI_ENSURE(rctx); _mesa_UniformMatrix4x2fv(a0, a1, a2, a3); }
 extern void _mesa_UniformMatrix3x4fv(int, int, unsigned char, void *);
-static void w_753(void *rctx, int a0, int a1, unsigned char a2, void * a3) { _mesa_UniformMatrix3x4fv(a0, a1, a2, a3); }
+static void w_753(void *rctx, int a0, int a1, unsigned char a2, void * a3) { SWEET_GLI_ENSURE(rctx); _mesa_UniformMatrix3x4fv(a0, a1, a2, a3); }
 extern void _mesa_UniformMatrix4x3fv(int, int, unsigned char, void *);
-static void w_754(void *rctx, int a0, int a1, unsigned char a2, void * a3) { _mesa_UniformMatrix4x3fv(a0, a1, a2, a3); }
+static void w_754(void *rctx, int a0, int a1, unsigned char a2, void * a3) { SWEET_GLI_ENSURE(rctx); _mesa_UniformMatrix4x3fv(a0, a1, a2, a3); }
 extern void _mesa_BlitFramebuffer(int, int, int, int, int, int, int, int, unsigned int, unsigned int);
-static void w_755(void *rctx, int a0, int a1, int a2, int a3, int a4, int a5, int a6, int a7, unsigned int a8, unsigned int a9) { _mesa_BlitFramebuffer(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9); }
+static void w_755(void *rctx, int a0, int a1, int a2, int a3, int a4, int a5, int a6, int a7, unsigned int a8, unsigned int a9) { SWEET_GLI_ENSURE(rctx); _mesa_BlitFramebuffer(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9); }
 extern void _mesa_RenderbufferStorageMultisample(unsigned int, int, unsigned int, int, int);
-static void w_756(void *rctx, unsigned int a0, int a1, unsigned int a2, int a3, int a4) { _mesa_RenderbufferStorageMultisample(a0, a1, a2, a3, a4); }
+static void w_756(void *rctx, unsigned int a0, int a1, unsigned int a2, int a3, int a4) { SWEET_GLI_ENSURE(rctx); _mesa_RenderbufferStorageMultisample(a0, a1, a2, a3, a4); }
 extern void _mesa_GetAttachedShaders(unsigned int, int, void *, void *);
-static void w_759(void *rctx, unsigned int a0, int a1, void * a2, void * a3) { _mesa_GetAttachedShaders(a0, a1, a2, a3); }
+static void w_759(void *rctx, unsigned int a0, int a1, void * a2, void * a3) { SWEET_GLI_ENSURE(rctx); _mesa_GetAttachedShaders(a0, a1, a2, a3); }
 extern void _mesa_VertexAttribDivisor(unsigned int, unsigned int);
-static void w_761(void *rctx, unsigned int a0, unsigned int a1) { _mesa_VertexAttribDivisor(a0, a1); }
+static void w_761(void *rctx, unsigned int a0, unsigned int a1) { SWEET_GLI_ENSURE(rctx); _mesa_VertexAttribDivisor(a0, a1); }
 extern void _mesa_DrawArraysInstanced(unsigned int, int, int, int);
-static void w_762(void *rctx, unsigned int a0, int a1, int a2, int a3) { _mesa_DrawArraysInstanced(a0, a1, a2, a3); }
+static void w_762(void *rctx, unsigned int a0, int a1, int a2, int a3) { SWEET_GLI_ENSURE(rctx); _mesa_DrawArraysInstanced(a0, a1, a2, a3); }
 extern void _mesa_DrawElementsInstanced(unsigned int, int, unsigned int, void *, int);
-static void w_763(void *rctx, unsigned int a0, int a1, unsigned int a2, void * a3, int a4) { _mesa_DrawElementsInstanced(a0, a1, a2, a3, a4); }
+static void w_763(void *rctx, unsigned int a0, int a1, unsigned int a2, void * a3, int a4) { SWEET_GLI_ENSURE(rctx); _mesa_DrawElementsInstanced(a0, a1, a2, a3, a4); }
 extern void _mesa_BindVertexArray(unsigned int);
-static void w_768(void *rctx, unsigned int a0) { _mesa_BindVertexArray(a0); }
+static void w_768(void *rctx, unsigned int a0) { SWEET_GLI_ENSURE(rctx); _mesa_BindVertexArray(a0); }
 extern void _mesa_DeleteVertexArrays(int, void *);
-static void w_769(void *rctx, int a0, void * a1) { _mesa_DeleteVertexArrays(a0, a1); }
+static void w_769(void *rctx, int a0, void * a1) { SWEET_GLI_ENSURE(rctx); _mesa_DeleteVertexArrays(a0, a1); }
 extern void _mesa_GenVertexArrays(int, void *);
-static void w_770(void *rctx, int a0, void * a1) { _mesa_GenVertexArrays(a0, a1); }
+static void w_770(void *rctx, int a0, void * a1) { SWEET_GLI_ENSURE(rctx); _mesa_GenVertexArrays(a0, a1); }
 extern unsigned char _mesa_IsVertexArray(unsigned int);
-static unsigned char w_771(void *rctx, unsigned int a0) { return _mesa_IsVertexArray(a0); }
+static unsigned char w_771(void *rctx, unsigned int a0) { SWEET_GLI_ENSURE(rctx); return _mesa_IsVertexArray(a0); }
 extern void _mesa_PointSizePointerOES(unsigned int, int, void *);
-static void w_772(void *rctx, unsigned int a0, int a1, void * a2) { _mesa_PointSizePointerOES(a0, a1, a2); }
+static void w_772(void *rctx, unsigned int a0, int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_PointSizePointerOES(a0, a1, a2); }
 extern void _mesa_ClearBufferiv(unsigned int, int, void *);
-static void w_774(void *rctx, unsigned int a0, int a1, void * a2) { _mesa_ClearBufferiv(a0, a1, a2); }
+static void w_774(void *rctx, unsigned int a0, int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_ClearBufferiv(a0, a1, a2); }
 extern void _mesa_ClearBufferuiv(unsigned int, int, void *);
-static void w_775(void *rctx, unsigned int a0, int a1, void * a2) { _mesa_ClearBufferuiv(a0, a1, a2); }
+static void w_775(void *rctx, unsigned int a0, int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_ClearBufferuiv(a0, a1, a2); }
 extern void _mesa_ClearBufferfv(unsigned int, int, void *);
-static void w_776(void *rctx, unsigned int a0, int a1, void * a2) { _mesa_ClearBufferfv(a0, a1, a2); }
+static void w_776(void *rctx, unsigned int a0, int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_ClearBufferfv(a0, a1, a2); }
 extern void _mesa_ClearBufferfi(unsigned int, int, float, int);
-static void w_777(void *rctx, unsigned int a0, int a1, float a2, int a3) { _mesa_ClearBufferfi(a0, a1, a2, a3); }
+static void w_777(void *rctx, unsigned int a0, int a1, float a2, int a3) { SWEET_GLI_ENSURE(rctx); _mesa_ClearBufferfi(a0, a1, a2, a3); }
 extern void * _mesa_GetStringi(unsigned int, unsigned int);
-static void * w_778(void *rctx, unsigned int a0, unsigned int a1) { return _mesa_GetStringi(a0, a1); }
+static void * w_778(void *rctx, unsigned int a0, unsigned int a1) { SWEET_GLI_ENSURE(rctx); return _mesa_GetStringi(a0, a1); }
 extern void * _mesa_FenceSync(unsigned int, unsigned int);
-static void * w_779(void *rctx, unsigned int a0, unsigned int a1) { return _mesa_FenceSync(a0, a1); }
+static void * w_779(void *rctx, unsigned int a0, unsigned int a1) { SWEET_GLI_ENSURE(rctx); return _mesa_FenceSync(a0, a1); }
 extern unsigned char _mesa_IsSync(void *);
-static unsigned char w_780(void *rctx, void * a0) { return _mesa_IsSync(a0); }
+static unsigned char w_780(void *rctx, void * a0) { SWEET_GLI_ENSURE(rctx); return _mesa_IsSync(a0); }
 extern void _mesa_DeleteSync(void *);
-static void w_781(void *rctx, void * a0) { _mesa_DeleteSync(a0); }
+static void w_781(void *rctx, void * a0) { SWEET_GLI_ENSURE(rctx); _mesa_DeleteSync(a0); }
 extern unsigned int _mesa_ClientWaitSync(void *, unsigned int, unsigned long);
-static unsigned int w_782(void *rctx, void * a0, unsigned int a1, unsigned long a2) { return _mesa_ClientWaitSync(a0, a1, a2); }
+static unsigned int w_782(void *rctx, void * a0, unsigned int a1, unsigned long a2) { SWEET_GLI_ENSURE(rctx); return _mesa_ClientWaitSync(a0, a1, a2); }
 extern void _mesa_WaitSync(void *, unsigned int, unsigned long);
-static void w_783(void *rctx, void * a0, unsigned int a1, unsigned long a2) { _mesa_WaitSync(a0, a1, a2); }
+static void w_783(void *rctx, void * a0, unsigned int a1, unsigned long a2) { SWEET_GLI_ENSURE(rctx); _mesa_WaitSync(a0, a1, a2); }
 extern void _mesa_GetInteger64v(unsigned int, void *);
-static void w_784(void *rctx, unsigned int a0, void * a1) { _mesa_GetInteger64v(a0, a1); }
+static void w_784(void *rctx, unsigned int a0, void * a1) { SWEET_GLI_ENSURE(rctx); _mesa_GetInteger64v(a0, a1); }
 extern void _mesa_GetSynciv(void *, unsigned int, int, void *, void *);
-static void w_785(void *rctx, void * a0, unsigned int a1, int a2, void * a3, void * a4) { _mesa_GetSynciv(a0, a1, a2, a3, a4); }
+static void w_785(void *rctx, void * a0, unsigned int a1, int a2, void * a3, void * a4) { SWEET_GLI_ENSURE(rctx); _mesa_GetSynciv(a0, a1, a2, a3, a4); }
 extern void _mesa_CopyBufferSubData(unsigned int, unsigned int, long, long, long);
-static void w_791(void *rctx, unsigned int a0, unsigned int a1, long a2, long a3, long a4) { _mesa_CopyBufferSubData(a0, a1, a2, a3, a4); }
+static void w_791(void *rctx, unsigned int a0, unsigned int a1, long a2, long a3, long a4) { SWEET_GLI_ENSURE(rctx); _mesa_CopyBufferSubData(a0, a1, a2, a3, a4); }
 extern void * _mesa_MapBufferRange(unsigned int, long, long, unsigned int);
-static void * w_795(void *rctx, unsigned int a0, long a1, long a2, unsigned int a3) { return _mesa_MapBufferRange(a0, a1, a2, a3); }
+static void * w_795(void *rctx, unsigned int a0, long a1, long a2, unsigned int a3) { SWEET_GLI_ENSURE(rctx); return _mesa_MapBufferRange(a0, a1, a2, a3); }
 extern void _mesa_FlushMappedBufferRange(unsigned int, long, long);
-static void w_796(void *rctx, unsigned int a0, long a1, long a2) { _mesa_FlushMappedBufferRange(a0, a1, a2); }
+static void w_796(void *rctx, unsigned int a0, long a1, long a2) { SWEET_GLI_ENSURE(rctx); _mesa_FlushMappedBufferRange(a0, a1, a2); }
 extern void _mesa_GetInteger64i_v(unsigned int, unsigned int, void *);
-static void w_798(void *rctx, unsigned int a0, unsigned int a1, void * a2) { _mesa_GetInteger64i_v(a0, a1, a2); }
+static void w_798(void *rctx, unsigned int a0, unsigned int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_GetInteger64i_v(a0, a1, a2); }
 extern void _mesa_GetBufferParameteri64v(unsigned int, unsigned int, void *);
-static void w_799(void *rctx, unsigned int a0, unsigned int a1, void * a2) { _mesa_GetBufferParameteri64v(a0, a1, a2); }
+static void w_799(void *rctx, unsigned int a0, unsigned int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_GetBufferParameteri64v(a0, a1, a2); }
 extern void _mesa_GenSamplers(int, void *);
-static void w_800(void *rctx, int a0, void * a1) { _mesa_GenSamplers(a0, a1); }
+static void w_800(void *rctx, int a0, void * a1) { SWEET_GLI_ENSURE(rctx); _mesa_GenSamplers(a0, a1); }
 extern void _mesa_DeleteSamplers(int, void *);
-static void w_801(void *rctx, int a0, void * a1) { _mesa_DeleteSamplers(a0, a1); }
+static void w_801(void *rctx, int a0, void * a1) { SWEET_GLI_ENSURE(rctx); _mesa_DeleteSamplers(a0, a1); }
 extern unsigned char _mesa_IsSampler(unsigned int);
-static unsigned char w_802(void *rctx, unsigned int a0) { return _mesa_IsSampler(a0); }
+static unsigned char w_802(void *rctx, unsigned int a0) { SWEET_GLI_ENSURE(rctx); return _mesa_IsSampler(a0); }
 extern void _mesa_BindSampler(unsigned int, unsigned int);
-static void w_803(void *rctx, unsigned int a0, unsigned int a1) { _mesa_BindSampler(a0, a1); }
+static void w_803(void *rctx, unsigned int a0, unsigned int a1) { SWEET_GLI_ENSURE(rctx); _mesa_BindSampler(a0, a1); }
 extern void _mesa_SamplerParameteri(unsigned int, unsigned int, int);
-static void w_804(void *rctx, unsigned int a0, unsigned int a1, int a2) { _mesa_SamplerParameteri(a0, a1, a2); }
+static void w_804(void *rctx, unsigned int a0, unsigned int a1, int a2) { SWEET_GLI_ENSURE(rctx); _mesa_SamplerParameteri(a0, a1, a2); }
 extern void _mesa_SamplerParameteriv(unsigned int, unsigned int, void *);
-static void w_805(void *rctx, unsigned int a0, unsigned int a1, void * a2) { _mesa_SamplerParameteriv(a0, a1, a2); }
+static void w_805(void *rctx, unsigned int a0, unsigned int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_SamplerParameteriv(a0, a1, a2); }
 extern void _mesa_SamplerParameterf(unsigned int, unsigned int, float);
-static void w_806(void *rctx, unsigned int a0, unsigned int a1, float a2) { _mesa_SamplerParameterf(a0, a1, a2); }
+static void w_806(void *rctx, unsigned int a0, unsigned int a1, float a2) { SWEET_GLI_ENSURE(rctx); _mesa_SamplerParameterf(a0, a1, a2); }
 extern void _mesa_SamplerParameterfv(unsigned int, unsigned int, void *);
-static void w_807(void *rctx, unsigned int a0, unsigned int a1, void * a2) { _mesa_SamplerParameterfv(a0, a1, a2); }
+static void w_807(void *rctx, unsigned int a0, unsigned int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_SamplerParameterfv(a0, a1, a2); }
 extern void _mesa_GetSamplerParameteriv(unsigned int, unsigned int, void *);
-static void w_810(void *rctx, unsigned int a0, unsigned int a1, void * a2) { _mesa_GetSamplerParameteriv(a0, a1, a2); }
+static void w_810(void *rctx, unsigned int a0, unsigned int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_GetSamplerParameteriv(a0, a1, a2); }
 extern void _mesa_GetSamplerParameterfv(unsigned int, unsigned int, void *);
-static void w_811(void *rctx, unsigned int a0, unsigned int a1, void * a2) { _mesa_GetSamplerParameterfv(a0, a1, a2); }
+static void w_811(void *rctx, unsigned int a0, unsigned int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_GetSamplerParameterfv(a0, a1, a2); }
 extern void _mesa_LabelObjectEXT(unsigned int, unsigned int, int, void *);
-static void w_814(void *rctx, unsigned int a0, unsigned int a1, int a2, void * a3) { _mesa_LabelObjectEXT(a0, a1, a2, a3); }
+static void w_814(void *rctx, unsigned int a0, unsigned int a1, int a2, void * a3) { SWEET_GLI_ENSURE(rctx); _mesa_LabelObjectEXT(a0, a1, a2, a3); }
 extern void _mesa_GetObjectLabelEXT(unsigned int, unsigned int, int, void *, void *);
-static void w_815(void *rctx, unsigned int a0, unsigned int a1, int a2, void * a3, void * a4) { _mesa_GetObjectLabelEXT(a0, a1, a2, a3, a4); }
+static void w_815(void *rctx, unsigned int a0, unsigned int a1, int a2, void * a3, void * a4) { SWEET_GLI_ENSURE(rctx); _mesa_GetObjectLabelEXT(a0, a1, a2, a3, a4); }
 extern void _mesa_UseProgramStages(unsigned int, unsigned int, unsigned int);
-static void w_819(void *rctx, unsigned int a0, unsigned int a1, unsigned int a2) { _mesa_UseProgramStages(a0, a1, a2); }
+static void w_819(void *rctx, unsigned int a0, unsigned int a1, unsigned int a2) { SWEET_GLI_ENSURE(rctx); _mesa_UseProgramStages(a0, a1, a2); }
 extern void _mesa_ActiveShaderProgram(unsigned int, unsigned int);
-static void w_820(void *rctx, unsigned int a0, unsigned int a1) { _mesa_ActiveShaderProgram(a0, a1); }
+static void w_820(void *rctx, unsigned int a0, unsigned int a1) { SWEET_GLI_ENSURE(rctx); _mesa_ActiveShaderProgram(a0, a1); }
 extern unsigned int _mesa_CreateShaderProgramv(unsigned int, int, void *);
-static unsigned int w_821(void *rctx, unsigned int a0, int a1, void * a2) { return _mesa_CreateShaderProgramv(a0, a1, a2); }
+static unsigned int w_821(void *rctx, unsigned int a0, int a1, void * a2) { SWEET_GLI_ENSURE(rctx); return _mesa_CreateShaderProgramv(a0, a1, a2); }
 extern void _mesa_BindProgramPipeline(unsigned int);
-static void w_822(void *rctx, unsigned int a0) { _mesa_BindProgramPipeline(a0); }
+static void w_822(void *rctx, unsigned int a0) { SWEET_GLI_ENSURE(rctx); _mesa_BindProgramPipeline(a0); }
 extern void _mesa_DeleteProgramPipelines(int, void *);
-static void w_823(void *rctx, int a0, void * a1) { _mesa_DeleteProgramPipelines(a0, a1); }
+static void w_823(void *rctx, int a0, void * a1) { SWEET_GLI_ENSURE(rctx); _mesa_DeleteProgramPipelines(a0, a1); }
 extern void _mesa_GenProgramPipelines(int, void *);
-static void w_824(void *rctx, int a0, void * a1) { _mesa_GenProgramPipelines(a0, a1); }
+static void w_824(void *rctx, int a0, void * a1) { SWEET_GLI_ENSURE(rctx); _mesa_GenProgramPipelines(a0, a1); }
 extern unsigned char _mesa_IsProgramPipeline(unsigned int);
-static unsigned char w_825(void *rctx, unsigned int a0) { return _mesa_IsProgramPipeline(a0); }
+static unsigned char w_825(void *rctx, unsigned int a0) { SWEET_GLI_ENSURE(rctx); return _mesa_IsProgramPipeline(a0); }
 extern void _mesa_GetProgramPipelineiv(unsigned int, unsigned int, void *);
-static void w_826(void *rctx, unsigned int a0, unsigned int a1, void * a2) { _mesa_GetProgramPipelineiv(a0, a1, a2); }
+static void w_826(void *rctx, unsigned int a0, unsigned int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_GetProgramPipelineiv(a0, a1, a2); }
 extern void _mesa_ValidateProgramPipeline(unsigned int);
-static void w_827(void *rctx, unsigned int a0) { _mesa_ValidateProgramPipeline(a0); }
+static void w_827(void *rctx, unsigned int a0) { SWEET_GLI_ENSURE(rctx); _mesa_ValidateProgramPipeline(a0); }
 extern void _mesa_GetProgramPipelineInfoLog(unsigned int, int, void *, void *);
-static void w_828(void *rctx, unsigned int a0, int a1, void * a2, void * a3) { _mesa_GetProgramPipelineInfoLog(a0, a1, a2, a3); }
+static void w_828(void *rctx, unsigned int a0, int a1, void * a2, void * a3) { SWEET_GLI_ENSURE(rctx); _mesa_GetProgramPipelineInfoLog(a0, a1, a2, a3); }
 extern void _mesa_ProgramUniform1i(unsigned int, int, int);
-static void w_829(void *rctx, unsigned int a0, int a1, int a2) { _mesa_ProgramUniform1i(a0, a1, a2); }
+static void w_829(void *rctx, unsigned int a0, int a1, int a2) { SWEET_GLI_ENSURE(rctx); _mesa_ProgramUniform1i(a0, a1, a2); }
 extern void _mesa_ProgramUniform2i(unsigned int, int, int, int);
-static void w_830(void *rctx, unsigned int a0, int a1, int a2, int a3) { _mesa_ProgramUniform2i(a0, a1, a2, a3); }
+static void w_830(void *rctx, unsigned int a0, int a1, int a2, int a3) { SWEET_GLI_ENSURE(rctx); _mesa_ProgramUniform2i(a0, a1, a2, a3); }
 extern void _mesa_ProgramUniform3i(unsigned int, int, int, int, int);
-static void w_831(void *rctx, unsigned int a0, int a1, int a2, int a3, int a4) { _mesa_ProgramUniform3i(a0, a1, a2, a3, a4); }
+static void w_831(void *rctx, unsigned int a0, int a1, int a2, int a3, int a4) { SWEET_GLI_ENSURE(rctx); _mesa_ProgramUniform3i(a0, a1, a2, a3, a4); }
 extern void _mesa_ProgramUniform4i(unsigned int, int, int, int, int, int);
-static void w_832(void *rctx, unsigned int a0, int a1, int a2, int a3, int a4, int a5) { _mesa_ProgramUniform4i(a0, a1, a2, a3, a4, a5); }
+static void w_832(void *rctx, unsigned int a0, int a1, int a2, int a3, int a4, int a5) { SWEET_GLI_ENSURE(rctx); _mesa_ProgramUniform4i(a0, a1, a2, a3, a4, a5); }
 extern void _mesa_ProgramUniform1f(unsigned int, int, float);
-static void w_833(void *rctx, unsigned int a0, int a1, float a2) { _mesa_ProgramUniform1f(a0, a1, a2); }
+static void w_833(void *rctx, unsigned int a0, int a1, float a2) { SWEET_GLI_ENSURE(rctx); _mesa_ProgramUniform1f(a0, a1, a2); }
 extern void _mesa_ProgramUniform2f(unsigned int, int, float, float);
-static void w_834(void *rctx, unsigned int a0, int a1, float a2, float a3) { _mesa_ProgramUniform2f(a0, a1, a2, a3); }
+static void w_834(void *rctx, unsigned int a0, int a1, float a2, float a3) { SWEET_GLI_ENSURE(rctx); _mesa_ProgramUniform2f(a0, a1, a2, a3); }
 extern void _mesa_ProgramUniform3f(unsigned int, int, float, float, float);
-static void w_835(void *rctx, unsigned int a0, int a1, float a2, float a3, float a4) { _mesa_ProgramUniform3f(a0, a1, a2, a3, a4); }
+static void w_835(void *rctx, unsigned int a0, int a1, float a2, float a3, float a4) { SWEET_GLI_ENSURE(rctx); _mesa_ProgramUniform3f(a0, a1, a2, a3, a4); }
 extern void _mesa_ProgramUniform4f(unsigned int, int, float, float, float, float);
-static void w_836(void *rctx, unsigned int a0, int a1, float a2, float a3, float a4, float a5) { _mesa_ProgramUniform4f(a0, a1, a2, a3, a4, a5); }
+static void w_836(void *rctx, unsigned int a0, int a1, float a2, float a3, float a4, float a5) { SWEET_GLI_ENSURE(rctx); _mesa_ProgramUniform4f(a0, a1, a2, a3, a4, a5); }
 extern void _mesa_ProgramUniform1iv(unsigned int, int, int, void *);
-static void w_837(void *rctx, unsigned int a0, int a1, int a2, void * a3) { _mesa_ProgramUniform1iv(a0, a1, a2, a3); }
+static void w_837(void *rctx, unsigned int a0, int a1, int a2, void * a3) { SWEET_GLI_ENSURE(rctx); _mesa_ProgramUniform1iv(a0, a1, a2, a3); }
 extern void _mesa_ProgramUniform2iv(unsigned int, int, int, void *);
-static void w_838(void *rctx, unsigned int a0, int a1, int a2, void * a3) { _mesa_ProgramUniform2iv(a0, a1, a2, a3); }
+static void w_838(void *rctx, unsigned int a0, int a1, int a2, void * a3) { SWEET_GLI_ENSURE(rctx); _mesa_ProgramUniform2iv(a0, a1, a2, a3); }
 extern void _mesa_ProgramUniform3iv(unsigned int, int, int, void *);
-static void w_839(void *rctx, unsigned int a0, int a1, int a2, void * a3) { _mesa_ProgramUniform3iv(a0, a1, a2, a3); }
+static void w_839(void *rctx, unsigned int a0, int a1, int a2, void * a3) { SWEET_GLI_ENSURE(rctx); _mesa_ProgramUniform3iv(a0, a1, a2, a3); }
 extern void _mesa_ProgramUniform4iv(unsigned int, int, int, void *);
-static void w_840(void *rctx, unsigned int a0, int a1, int a2, void * a3) { _mesa_ProgramUniform4iv(a0, a1, a2, a3); }
+static void w_840(void *rctx, unsigned int a0, int a1, int a2, void * a3) { SWEET_GLI_ENSURE(rctx); _mesa_ProgramUniform4iv(a0, a1, a2, a3); }
 extern void _mesa_ProgramUniform1fv(unsigned int, int, int, void *);
-static void w_841(void *rctx, unsigned int a0, int a1, int a2, void * a3) { _mesa_ProgramUniform1fv(a0, a1, a2, a3); }
+static void w_841(void *rctx, unsigned int a0, int a1, int a2, void * a3) { SWEET_GLI_ENSURE(rctx); _mesa_ProgramUniform1fv(a0, a1, a2, a3); }
 extern void _mesa_ProgramUniform2fv(unsigned int, int, int, void *);
-static void w_842(void *rctx, unsigned int a0, int a1, int a2, void * a3) { _mesa_ProgramUniform2fv(a0, a1, a2, a3); }
+static void w_842(void *rctx, unsigned int a0, int a1, int a2, void * a3) { SWEET_GLI_ENSURE(rctx); _mesa_ProgramUniform2fv(a0, a1, a2, a3); }
 extern void _mesa_ProgramUniform3fv(unsigned int, int, int, void *);
-static void w_843(void *rctx, unsigned int a0, int a1, int a2, void * a3) { _mesa_ProgramUniform3fv(a0, a1, a2, a3); }
+static void w_843(void *rctx, unsigned int a0, int a1, int a2, void * a3) { SWEET_GLI_ENSURE(rctx); _mesa_ProgramUniform3fv(a0, a1, a2, a3); }
 extern void _mesa_ProgramUniform4fv(unsigned int, int, int, void *);
-static void w_844(void *rctx, unsigned int a0, int a1, int a2, void * a3) { _mesa_ProgramUniform4fv(a0, a1, a2, a3); }
+static void w_844(void *rctx, unsigned int a0, int a1, int a2, void * a3) { SWEET_GLI_ENSURE(rctx); _mesa_ProgramUniform4fv(a0, a1, a2, a3); }
 extern void _mesa_ProgramUniformMatrix2fv(unsigned int, int, int, unsigned char, void *);
-static void w_845(void *rctx, unsigned int a0, int a1, int a2, unsigned char a3, void * a4) { _mesa_ProgramUniformMatrix2fv(a0, a1, a2, a3, a4); }
+static void w_845(void *rctx, unsigned int a0, int a1, int a2, unsigned char a3, void * a4) { SWEET_GLI_ENSURE(rctx); _mesa_ProgramUniformMatrix2fv(a0, a1, a2, a3, a4); }
 extern void _mesa_ProgramUniformMatrix3fv(unsigned int, int, int, unsigned char, void *);
-static void w_846(void *rctx, unsigned int a0, int a1, int a2, unsigned char a3, void * a4) { _mesa_ProgramUniformMatrix3fv(a0, a1, a2, a3, a4); }
+static void w_846(void *rctx, unsigned int a0, int a1, int a2, unsigned char a3, void * a4) { SWEET_GLI_ENSURE(rctx); _mesa_ProgramUniformMatrix3fv(a0, a1, a2, a3, a4); }
 extern void _mesa_ProgramUniformMatrix4fv(unsigned int, int, int, unsigned char, void *);
-static void w_847(void *rctx, unsigned int a0, int a1, int a2, unsigned char a3, void * a4) { _mesa_ProgramUniformMatrix4fv(a0, a1, a2, a3, a4); }
+static void w_847(void *rctx, unsigned int a0, int a1, int a2, unsigned char a3, void * a4) { SWEET_GLI_ENSURE(rctx); _mesa_ProgramUniformMatrix4fv(a0, a1, a2, a3, a4); }
 extern void _mesa_ProgramUniform1ui(unsigned int, int, unsigned int);
-static void w_848(void *rctx, unsigned int a0, int a1, unsigned int a2) { _mesa_ProgramUniform1ui(a0, a1, a2); }
+static void w_848(void *rctx, unsigned int a0, int a1, unsigned int a2) { SWEET_GLI_ENSURE(rctx); _mesa_ProgramUniform1ui(a0, a1, a2); }
 extern void _mesa_ProgramUniform2ui(unsigned int, int, unsigned int, unsigned int);
-static void w_849(void *rctx, unsigned int a0, int a1, unsigned int a2, unsigned int a3) { _mesa_ProgramUniform2ui(a0, a1, a2, a3); }
+static void w_849(void *rctx, unsigned int a0, int a1, unsigned int a2, unsigned int a3) { SWEET_GLI_ENSURE(rctx); _mesa_ProgramUniform2ui(a0, a1, a2, a3); }
 extern void _mesa_ProgramUniform3ui(unsigned int, int, unsigned int, unsigned int, unsigned int);
-static void w_850(void *rctx, unsigned int a0, int a1, unsigned int a2, unsigned int a3, unsigned int a4) { _mesa_ProgramUniform3ui(a0, a1, a2, a3, a4); }
+static void w_850(void *rctx, unsigned int a0, int a1, unsigned int a2, unsigned int a3, unsigned int a4) { SWEET_GLI_ENSURE(rctx); _mesa_ProgramUniform3ui(a0, a1, a2, a3, a4); }
 extern void _mesa_ProgramUniform4ui(unsigned int, int, unsigned int, unsigned int, unsigned int, unsigned int);
-static void w_851(void *rctx, unsigned int a0, int a1, unsigned int a2, unsigned int a3, unsigned int a4, unsigned int a5) { _mesa_ProgramUniform4ui(a0, a1, a2, a3, a4, a5); }
+static void w_851(void *rctx, unsigned int a0, int a1, unsigned int a2, unsigned int a3, unsigned int a4, unsigned int a5) { SWEET_GLI_ENSURE(rctx); _mesa_ProgramUniform4ui(a0, a1, a2, a3, a4, a5); }
 extern void _mesa_ProgramUniform1uiv(unsigned int, int, int, void *);
-static void w_852(void *rctx, unsigned int a0, int a1, int a2, void * a3) { _mesa_ProgramUniform1uiv(a0, a1, a2, a3); }
+static void w_852(void *rctx, unsigned int a0, int a1, int a2, void * a3) { SWEET_GLI_ENSURE(rctx); _mesa_ProgramUniform1uiv(a0, a1, a2, a3); }
 extern void _mesa_ProgramUniform2uiv(unsigned int, int, int, void *);
-static void w_853(void *rctx, unsigned int a0, int a1, int a2, void * a3) { _mesa_ProgramUniform2uiv(a0, a1, a2, a3); }
+static void w_853(void *rctx, unsigned int a0, int a1, int a2, void * a3) { SWEET_GLI_ENSURE(rctx); _mesa_ProgramUniform2uiv(a0, a1, a2, a3); }
 extern void _mesa_ProgramUniform3uiv(unsigned int, int, int, void *);
-static void w_854(void *rctx, unsigned int a0, int a1, int a2, void * a3) { _mesa_ProgramUniform3uiv(a0, a1, a2, a3); }
+static void w_854(void *rctx, unsigned int a0, int a1, int a2, void * a3) { SWEET_GLI_ENSURE(rctx); _mesa_ProgramUniform3uiv(a0, a1, a2, a3); }
 extern void _mesa_ProgramUniform4uiv(unsigned int, int, int, void *);
-static void w_855(void *rctx, unsigned int a0, int a1, int a2, void * a3) { _mesa_ProgramUniform4uiv(a0, a1, a2, a3); }
+static void w_855(void *rctx, unsigned int a0, int a1, int a2, void * a3) { SWEET_GLI_ENSURE(rctx); _mesa_ProgramUniform4uiv(a0, a1, a2, a3); }
 extern void _mesa_ProgramUniformMatrix2x3fv(unsigned int, int, int, unsigned char, void *);
-static void w_856(void *rctx, unsigned int a0, int a1, int a2, unsigned char a3, void * a4) { _mesa_ProgramUniformMatrix2x3fv(a0, a1, a2, a3, a4); }
+static void w_856(void *rctx, unsigned int a0, int a1, int a2, unsigned char a3, void * a4) { SWEET_GLI_ENSURE(rctx); _mesa_ProgramUniformMatrix2x3fv(a0, a1, a2, a3, a4); }
 extern void _mesa_ProgramUniformMatrix3x2fv(unsigned int, int, int, unsigned char, void *);
-static void w_857(void *rctx, unsigned int a0, int a1, int a2, unsigned char a3, void * a4) { _mesa_ProgramUniformMatrix3x2fv(a0, a1, a2, a3, a4); }
+static void w_857(void *rctx, unsigned int a0, int a1, int a2, unsigned char a3, void * a4) { SWEET_GLI_ENSURE(rctx); _mesa_ProgramUniformMatrix3x2fv(a0, a1, a2, a3, a4); }
 extern void _mesa_ProgramUniformMatrix2x4fv(unsigned int, int, int, unsigned char, void *);
-static void w_858(void *rctx, unsigned int a0, int a1, int a2, unsigned char a3, void * a4) { _mesa_ProgramUniformMatrix2x4fv(a0, a1, a2, a3, a4); }
+static void w_858(void *rctx, unsigned int a0, int a1, int a2, unsigned char a3, void * a4) { SWEET_GLI_ENSURE(rctx); _mesa_ProgramUniformMatrix2x4fv(a0, a1, a2, a3, a4); }
 extern void _mesa_ProgramUniformMatrix4x2fv(unsigned int, int, int, unsigned char, void *);
-static void w_859(void *rctx, unsigned int a0, int a1, int a2, unsigned char a3, void * a4) { _mesa_ProgramUniformMatrix4x2fv(a0, a1, a2, a3, a4); }
+static void w_859(void *rctx, unsigned int a0, int a1, int a2, unsigned char a3, void * a4) { SWEET_GLI_ENSURE(rctx); _mesa_ProgramUniformMatrix4x2fv(a0, a1, a2, a3, a4); }
 extern void _mesa_ProgramUniformMatrix3x4fv(unsigned int, int, int, unsigned char, void *);
-static void w_860(void *rctx, unsigned int a0, int a1, int a2, unsigned char a3, void * a4) { _mesa_ProgramUniformMatrix3x4fv(a0, a1, a2, a3, a4); }
+static void w_860(void *rctx, unsigned int a0, int a1, int a2, unsigned char a3, void * a4) { SWEET_GLI_ENSURE(rctx); _mesa_ProgramUniformMatrix3x4fv(a0, a1, a2, a3, a4); }
 extern void _mesa_ProgramUniformMatrix4x3fv(unsigned int, int, int, unsigned char, void *);
-static void w_861(void *rctx, unsigned int a0, int a1, int a2, unsigned char a3, void * a4) { _mesa_ProgramUniformMatrix4x3fv(a0, a1, a2, a3, a4); }
+static void w_861(void *rctx, unsigned int a0, int a1, int a2, unsigned char a3, void * a4) { SWEET_GLI_ENSURE(rctx); _mesa_ProgramUniformMatrix4x3fv(a0, a1, a2, a3, a4); }
 extern void _mesa_ReleaseShaderCompiler(void);
-static void w_874(void *rctx) { _mesa_ReleaseShaderCompiler(); }
+static void w_874(void *rctx) { SWEET_GLI_ENSURE(rctx); _mesa_ReleaseShaderCompiler(); }
 extern void _mesa_ShaderBinary(int, void *, unsigned int, void *, int);
-static void w_875(void *rctx, int a0, void * a1, unsigned int a2, void * a3, int a4) { _mesa_ShaderBinary(a0, a1, a2, a3, a4); }
+static void w_875(void *rctx, int a0, void * a1, unsigned int a2, void * a3, int a4) { SWEET_GLI_ENSURE(rctx); _mesa_ShaderBinary(a0, a1, a2, a3, a4); }
 extern void _mesa_GetShaderPrecisionFormat(unsigned int, unsigned int, void *, void *);
-static void w_876(void *rctx, unsigned int a0, unsigned int a1, void * a2, void * a3) { _mesa_GetShaderPrecisionFormat(a0, a1, a2, a3); }
+static void w_876(void *rctx, unsigned int a0, unsigned int a1, void * a2, void * a3) { SWEET_GLI_ENSURE(rctx); _mesa_GetShaderPrecisionFormat(a0, a1, a2, a3); }
 extern void _mesa_DepthRangef(float, float);
-static void w_877(void *rctx, float a0, float a1) { _mesa_DepthRangef(a0, a1); }
+static void w_877(void *rctx, float a0, float a1) { SWEET_GLI_ENSURE(rctx); _mesa_DepthRangef(a0, a1); }
 extern void _mesa_ClearDepthf(float);
-static void w_878(void *rctx, float a0) { _mesa_ClearDepthf(a0); }
+static void w_878(void *rctx, float a0) { SWEET_GLI_ENSURE(rctx); _mesa_ClearDepthf(a0); }
 extern void _mesa_GetProgramBinary(unsigned int, int, void *, void *, void *);
-static void w_887(void *rctx, unsigned int a0, int a1, void * a2, void * a3, void * a4) { _mesa_GetProgramBinary(a0, a1, a2, a3, a4); }
+static void w_887(void *rctx, unsigned int a0, int a1, void * a2, void * a3, void * a4) { SWEET_GLI_ENSURE(rctx); _mesa_GetProgramBinary(a0, a1, a2, a3, a4); }
 extern void _mesa_ProgramBinary(unsigned int, unsigned int, void *, int);
-static void w_888(void *rctx, unsigned int a0, unsigned int a1, void * a2, int a3) { _mesa_ProgramBinary(a0, a1, a2, a3); }
+static void w_888(void *rctx, unsigned int a0, unsigned int a1, void * a2, int a3) { SWEET_GLI_ENSURE(rctx); _mesa_ProgramBinary(a0, a1, a2, a3); }
 extern void _mesa_BindTransformFeedback(unsigned int, unsigned int);
-static void w_904(void *rctx, unsigned int a0, unsigned int a1) { _mesa_BindTransformFeedback(a0, a1); }
+static void w_904(void *rctx, unsigned int a0, unsigned int a1) { SWEET_GLI_ENSURE(rctx); _mesa_BindTransformFeedback(a0, a1); }
 extern void _mesa_GenTransformFeedbacks(int, void *);
-static void w_905(void *rctx, int a0, void * a1) { _mesa_GenTransformFeedbacks(a0, a1); }
+static void w_905(void *rctx, int a0, void * a1) { SWEET_GLI_ENSURE(rctx); _mesa_GenTransformFeedbacks(a0, a1); }
 extern void _mesa_DeleteTransformFeedbacks(int, void *);
-static void w_906(void *rctx, int a0, void * a1) { _mesa_DeleteTransformFeedbacks(a0, a1); }
+static void w_906(void *rctx, int a0, void * a1) { SWEET_GLI_ENSURE(rctx); _mesa_DeleteTransformFeedbacks(a0, a1); }
 extern void _mesa_PauseTransformFeedback(void);
-static void w_907(void *rctx) { _mesa_PauseTransformFeedback(); }
+static void w_907(void *rctx) { SWEET_GLI_ENSURE(rctx); _mesa_PauseTransformFeedback(); }
 extern void _mesa_ResumeTransformFeedback(void);
-static void w_908(void *rctx) { _mesa_ResumeTransformFeedback(); }
+static void w_908(void *rctx) { SWEET_GLI_ENSURE(rctx); _mesa_ResumeTransformFeedback(); }
 extern unsigned char _mesa_IsTransformFeedback(unsigned int);
-static unsigned char w_909(void *rctx, unsigned int a0) { return _mesa_IsTransformFeedback(a0); }
+static unsigned char w_909(void *rctx, unsigned int a0) { SWEET_GLI_ENSURE(rctx); return _mesa_IsTransformFeedback(a0); }
 extern void _mesa_AlphaFuncx(unsigned int, int);
-static void w_968(void *rctx, unsigned int a0, int a1) { _mesa_AlphaFuncx(a0, a1); }
+static void w_968(void *rctx, unsigned int a0, int a1) { SWEET_GLI_ENSURE(rctx); _mesa_AlphaFuncx(a0, a1); }
 extern void _mesa_ClearColorx(int, int, int, int);
-static void w_969(void *rctx, int a0, int a1, int a2, int a3) { _mesa_ClearColorx(a0, a1, a2, a3); }
+static void w_969(void *rctx, int a0, int a1, int a2, int a3) { SWEET_GLI_ENSURE(rctx); _mesa_ClearColorx(a0, a1, a2, a3); }
 extern void _mesa_ClearDepthx(int);
-static void w_970(void *rctx, int a0) { _mesa_ClearDepthx(a0); }
+static void w_970(void *rctx, int a0) { SWEET_GLI_ENSURE(rctx); _mesa_ClearDepthx(a0); }
 extern void _mesa_ClipPlanef(unsigned int, void *);
-static void w_971(void *rctx, unsigned int a0, void * a1) { _mesa_ClipPlanef(a0, a1); }
+static void w_971(void *rctx, unsigned int a0, void * a1) { SWEET_GLI_ENSURE(rctx); _mesa_ClipPlanef(a0, a1); }
 extern void _mesa_ClipPlanex(unsigned int, void *);
-static void w_972(void *rctx, unsigned int a0, void * a1) { _mesa_ClipPlanex(a0, a1); }
+static void w_972(void *rctx, unsigned int a0, void * a1) { SWEET_GLI_ENSURE(rctx); _mesa_ClipPlanex(a0, a1); }
 extern void _mesa_Color4x(int, int, int, int);
-static void w_973(void *rctx, int a0, int a1, int a2, int a3) { _mesa_Color4x(a0, a1, a2, a3); }
+static void w_973(void *rctx, int a0, int a1, int a2, int a3) { SWEET_GLI_ENSURE(rctx); _mesa_Color4x(a0, a1, a2, a3); }
 extern void _mesa_DepthRangex(int, int);
-static void w_974(void *rctx, int a0, int a1) { _mesa_DepthRangex(a0, a1); }
+static void w_974(void *rctx, int a0, int a1) { SWEET_GLI_ENSURE(rctx); _mesa_DepthRangex(a0, a1); }
 extern void _mesa_Fogx(unsigned int, int);
-static void w_975(void *rctx, unsigned int a0, int a1) { _mesa_Fogx(a0, a1); }
+static void w_975(void *rctx, unsigned int a0, int a1) { SWEET_GLI_ENSURE(rctx); _mesa_Fogx(a0, a1); }
 extern void _mesa_Fogxv(unsigned int, void *);
-static void w_976(void *rctx, unsigned int a0, void * a1) { _mesa_Fogxv(a0, a1); }
+static void w_976(void *rctx, unsigned int a0, void * a1) { SWEET_GLI_ENSURE(rctx); _mesa_Fogxv(a0, a1); }
 extern void _mesa_Frustumf(float, float, float, float, float, float);
-static void w_977(void *rctx, float a0, float a1, float a2, float a3, float a4, float a5) { _mesa_Frustumf(a0, a1, a2, a3, a4, a5); }
+static void w_977(void *rctx, float a0, float a1, float a2, float a3, float a4, float a5) { SWEET_GLI_ENSURE(rctx); _mesa_Frustumf(a0, a1, a2, a3, a4, a5); }
 extern void _mesa_Frustumx(int, int, int, int, int, int);
-static void w_978(void *rctx, int a0, int a1, int a2, int a3, int a4, int a5) { _mesa_Frustumx(a0, a1, a2, a3, a4, a5); }
+static void w_978(void *rctx, int a0, int a1, int a2, int a3, int a4, int a5) { SWEET_GLI_ENSURE(rctx); _mesa_Frustumx(a0, a1, a2, a3, a4, a5); }
 extern void _mesa_GetClipPlanef(unsigned int, void *);
-static void w_979(void *rctx, unsigned int a0, void * a1) { _mesa_GetClipPlanef(a0, a1); }
+static void w_979(void *rctx, unsigned int a0, void * a1) { SWEET_GLI_ENSURE(rctx); _mesa_GetClipPlanef(a0, a1); }
 extern void _mesa_GetClipPlanex(unsigned int, void *);
-static void w_980(void *rctx, unsigned int a0, void * a1) { _mesa_GetClipPlanex(a0, a1); }
+static void w_980(void *rctx, unsigned int a0, void * a1) { SWEET_GLI_ENSURE(rctx); _mesa_GetClipPlanex(a0, a1); }
 extern void _mesa_GetFixedv(unsigned int, void *);
-static void w_981(void *rctx, unsigned int a0, void * a1) { _mesa_GetFixedv(a0, a1); }
+static void w_981(void *rctx, unsigned int a0, void * a1) { SWEET_GLI_ENSURE(rctx); _mesa_GetFixedv(a0, a1); }
 extern void _mesa_GetLightxv(unsigned int, unsigned int, void *);
-static void w_982(void *rctx, unsigned int a0, unsigned int a1, void * a2) { _mesa_GetLightxv(a0, a1, a2); }
+static void w_982(void *rctx, unsigned int a0, unsigned int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_GetLightxv(a0, a1, a2); }
 extern void _mesa_GetMaterialxv(unsigned int, unsigned int, void *);
-static void w_983(void *rctx, unsigned int a0, unsigned int a1, void * a2) { _mesa_GetMaterialxv(a0, a1, a2); }
+static void w_983(void *rctx, unsigned int a0, unsigned int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_GetMaterialxv(a0, a1, a2); }
 extern void _mesa_GetTexEnvxv(unsigned int, unsigned int, void *);
-static void w_984(void *rctx, unsigned int a0, unsigned int a1, void * a2) { _mesa_GetTexEnvxv(a0, a1, a2); }
+static void w_984(void *rctx, unsigned int a0, unsigned int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_GetTexEnvxv(a0, a1, a2); }
 extern void _mesa_GetTexParameterxv(unsigned int, unsigned int, void *);
-static void w_985(void *rctx, unsigned int a0, unsigned int a1, void * a2) { _mesa_GetTexParameterxv(a0, a1, a2); }
+static void w_985(void *rctx, unsigned int a0, unsigned int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_GetTexParameterxv(a0, a1, a2); }
 extern void _mesa_LightModelx(unsigned int, int);
-static void w_986(void *rctx, unsigned int a0, int a1) { _mesa_LightModelx(a0, a1); }
+static void w_986(void *rctx, unsigned int a0, int a1) { SWEET_GLI_ENSURE(rctx); _mesa_LightModelx(a0, a1); }
 extern void _mesa_LightModelxv(unsigned int, void *);
-static void w_987(void *rctx, unsigned int a0, void * a1) { _mesa_LightModelxv(a0, a1); }
+static void w_987(void *rctx, unsigned int a0, void * a1) { SWEET_GLI_ENSURE(rctx); _mesa_LightModelxv(a0, a1); }
 extern void _mesa_Lightx(unsigned int, unsigned int, int);
-static void w_988(void *rctx, unsigned int a0, unsigned int a1, int a2) { _mesa_Lightx(a0, a1, a2); }
+static void w_988(void *rctx, unsigned int a0, unsigned int a1, int a2) { SWEET_GLI_ENSURE(rctx); _mesa_Lightx(a0, a1, a2); }
 extern void _mesa_Lightxv(unsigned int, unsigned int, void *);
-static void w_989(void *rctx, unsigned int a0, unsigned int a1, void * a2) { _mesa_Lightxv(a0, a1, a2); }
+static void w_989(void *rctx, unsigned int a0, unsigned int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_Lightxv(a0, a1, a2); }
 extern void _mesa_LineWidthx(int);
-static void w_990(void *rctx, int a0) { _mesa_LineWidthx(a0); }
+static void w_990(void *rctx, int a0) { SWEET_GLI_ENSURE(rctx); _mesa_LineWidthx(a0); }
 extern void _mesa_LoadMatrixx(void *);
-static void w_991(void *rctx, void * a0) { _mesa_LoadMatrixx(a0); }
+static void w_991(void *rctx, void * a0) { SWEET_GLI_ENSURE(rctx); _mesa_LoadMatrixx(a0); }
 extern void _mesa_Materialx(unsigned int, unsigned int, int);
-static void w_992(void *rctx, unsigned int a0, unsigned int a1, int a2) { _mesa_Materialx(a0, a1, a2); }
+static void w_992(void *rctx, unsigned int a0, unsigned int a1, int a2) { SWEET_GLI_ENSURE(rctx); _mesa_Materialx(a0, a1, a2); }
 extern void _mesa_Materialxv(unsigned int, unsigned int, void *);
-static void w_993(void *rctx, unsigned int a0, unsigned int a1, void * a2) { _mesa_Materialxv(a0, a1, a2); }
+static void w_993(void *rctx, unsigned int a0, unsigned int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_Materialxv(a0, a1, a2); }
 extern void _mesa_MultMatrixx(void *);
-static void w_994(void *rctx, void * a0) { _mesa_MultMatrixx(a0); }
+static void w_994(void *rctx, void * a0) { SWEET_GLI_ENSURE(rctx); _mesa_MultMatrixx(a0); }
 extern void _mesa_Normal3x(int, int, int);
-static void w_995(void *rctx, int a0, int a1, int a2) { _mesa_Normal3x(a0, a1, a2); }
+static void w_995(void *rctx, int a0, int a1, int a2) { SWEET_GLI_ENSURE(rctx); _mesa_Normal3x(a0, a1, a2); }
 extern void _mesa_Orthof(float, float, float, float, float, float);
-static void w_996(void *rctx, float a0, float a1, float a2, float a3, float a4, float a5) { _mesa_Orthof(a0, a1, a2, a3, a4, a5); }
+static void w_996(void *rctx, float a0, float a1, float a2, float a3, float a4, float a5) { SWEET_GLI_ENSURE(rctx); _mesa_Orthof(a0, a1, a2, a3, a4, a5); }
 extern void _mesa_Orthox(int, int, int, int, int, int);
-static void w_997(void *rctx, int a0, int a1, int a2, int a3, int a4, int a5) { _mesa_Orthox(a0, a1, a2, a3, a4, a5); }
+static void w_997(void *rctx, int a0, int a1, int a2, int a3, int a4, int a5) { SWEET_GLI_ENSURE(rctx); _mesa_Orthox(a0, a1, a2, a3, a4, a5); }
 extern void _mesa_PointSizex(int);
-static void w_998(void *rctx, int a0) { _mesa_PointSizex(a0); }
+static void w_998(void *rctx, int a0) { SWEET_GLI_ENSURE(rctx); _mesa_PointSizex(a0); }
 extern void _mesa_PolygonOffsetx(int, int);
-static void w_999(void *rctx, int a0, int a1) { _mesa_PolygonOffsetx(a0, a1); }
+static void w_999(void *rctx, int a0, int a1) { SWEET_GLI_ENSURE(rctx); _mesa_PolygonOffsetx(a0, a1); }
 extern void _mesa_Rotatex(int, int, int, int);
-static void w_1000(void *rctx, int a0, int a1, int a2, int a3) { _mesa_Rotatex(a0, a1, a2, a3); }
+static void w_1000(void *rctx, int a0, int a1, int a2, int a3) { SWEET_GLI_ENSURE(rctx); _mesa_Rotatex(a0, a1, a2, a3); }
 extern void _mesa_Scalex(int, int, int);
-static void w_1001(void *rctx, int a0, int a1, int a2) { _mesa_Scalex(a0, a1, a2); }
+static void w_1001(void *rctx, int a0, int a1, int a2) { SWEET_GLI_ENSURE(rctx); _mesa_Scalex(a0, a1, a2); }
 extern void _mesa_TexEnvx(unsigned int, unsigned int, int);
-static void w_1002(void *rctx, unsigned int a0, unsigned int a1, int a2) { _mesa_TexEnvx(a0, a1, a2); }
+static void w_1002(void *rctx, unsigned int a0, unsigned int a1, int a2) { SWEET_GLI_ENSURE(rctx); _mesa_TexEnvx(a0, a1, a2); }
 extern void _mesa_TexEnvxv(unsigned int, unsigned int, void *);
-static void w_1003(void *rctx, unsigned int a0, unsigned int a1, void * a2) { _mesa_TexEnvxv(a0, a1, a2); }
+static void w_1003(void *rctx, unsigned int a0, unsigned int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_TexEnvxv(a0, a1, a2); }
 extern void _mesa_TexParameterx(unsigned int, unsigned int, int);
-static void w_1004(void *rctx, unsigned int a0, unsigned int a1, int a2) { _mesa_TexParameterx(a0, a1, a2); }
+static void w_1004(void *rctx, unsigned int a0, unsigned int a1, int a2) { SWEET_GLI_ENSURE(rctx); _mesa_TexParameterx(a0, a1, a2); }
 extern void _mesa_TexParameterxv(unsigned int, unsigned int, void *);
-static void w_1005(void *rctx, unsigned int a0, unsigned int a1, void * a2) { _mesa_TexParameterxv(a0, a1, a2); }
+static void w_1005(void *rctx, unsigned int a0, unsigned int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_TexParameterxv(a0, a1, a2); }
 extern void _mesa_Translatex(int, int, int);
-static void w_1006(void *rctx, int a0, int a1, int a2) { _mesa_Translatex(a0, a1, a2); }
+static void w_1006(void *rctx, int a0, int a1, int a2) { SWEET_GLI_ENSURE(rctx); _mesa_Translatex(a0, a1, a2); }
 extern void _mesa_MultiTexCoord4x(unsigned int, int, int, int, int);
-static void w_1007(void *rctx, unsigned int a0, int a1, int a2, int a3, int a4) { _mesa_MultiTexCoord4x(a0, a1, a2, a3, a4); }
+static void w_1007(void *rctx, unsigned int a0, int a1, int a2, int a3, int a4) { SWEET_GLI_ENSURE(rctx); _mesa_MultiTexCoord4x(a0, a1, a2, a3, a4); }
 extern void _mesa_SampleCoveragex(int, unsigned char);
-static void w_1008(void *rctx, int a0, unsigned char a1) { _mesa_SampleCoveragex(a0, a1); }
+static void w_1008(void *rctx, int a0, unsigned char a1) { SWEET_GLI_ENSURE(rctx); _mesa_SampleCoveragex(a0, a1); }
 extern void _mesa_PointParameterx(unsigned int, int);
-static void w_1009(void *rctx, unsigned int a0, int a1) { _mesa_PointParameterx(a0, a1); }
+static void w_1009(void *rctx, unsigned int a0, int a1) { SWEET_GLI_ENSURE(rctx); _mesa_PointParameterx(a0, a1); }
 extern void _mesa_PointParameterxv(unsigned int, void *);
-static void w_1010(void *rctx, unsigned int a0, void * a1) { _mesa_PointParameterxv(a0, a1); }
+static void w_1010(void *rctx, unsigned int a0, void * a1) { SWEET_GLI_ENSURE(rctx); _mesa_PointParameterxv(a0, a1); }
 extern void _mesa_DrawTexsOES(short, short, short, short, short);
-static void w_1015(void *rctx, short a0, short a1, short a2, short a3, short a4) { _mesa_DrawTexsOES(a0, a1, a2, a3, a4); }
+static void w_1015(void *rctx, short a0, short a1, short a2, short a3, short a4) { SWEET_GLI_ENSURE(rctx); _mesa_DrawTexsOES(a0, a1, a2, a3, a4); }
 extern void _mesa_DrawTexiOES(int, int, int, int, int);
-static void w_1016(void *rctx, int a0, int a1, int a2, int a3, int a4) { _mesa_DrawTexiOES(a0, a1, a2, a3, a4); }
+static void w_1016(void *rctx, int a0, int a1, int a2, int a3, int a4) { SWEET_GLI_ENSURE(rctx); _mesa_DrawTexiOES(a0, a1, a2, a3, a4); }
 extern void _mesa_DrawTexxOES(int, int, int, int, int);
-static void w_1017(void *rctx, int a0, int a1, int a2, int a3, int a4) { _mesa_DrawTexxOES(a0, a1, a2, a3, a4); }
+static void w_1017(void *rctx, int a0, int a1, int a2, int a3, int a4) { SWEET_GLI_ENSURE(rctx); _mesa_DrawTexxOES(a0, a1, a2, a3, a4); }
 extern void _mesa_DrawTexsvOES(void *);
-static void w_1018(void *rctx, void * a0) { _mesa_DrawTexsvOES(a0); }
+static void w_1018(void *rctx, void * a0) { SWEET_GLI_ENSURE(rctx); _mesa_DrawTexsvOES(a0); }
 extern void _mesa_DrawTexivOES(void *);
-static void w_1019(void *rctx, void * a0) { _mesa_DrawTexivOES(a0); }
+static void w_1019(void *rctx, void * a0) { SWEET_GLI_ENSURE(rctx); _mesa_DrawTexivOES(a0); }
 extern void _mesa_DrawTexxvOES(void *);
-static void w_1020(void *rctx, void * a0) { _mesa_DrawTexxvOES(a0); }
+static void w_1020(void *rctx, void * a0) { SWEET_GLI_ENSURE(rctx); _mesa_DrawTexxvOES(a0); }
 extern void _mesa_DrawTexfOES(float, float, float, float, float);
-static void w_1021(void *rctx, float a0, float a1, float a2, float a3, float a4) { _mesa_DrawTexfOES(a0, a1, a2, a3, a4); }
+static void w_1021(void *rctx, float a0, float a1, float a2, float a3, float a4) { SWEET_GLI_ENSURE(rctx); _mesa_DrawTexfOES(a0, a1, a2, a3, a4); }
 extern void _mesa_DrawTexfvOES(void *);
-static void w_1022(void *rctx, void * a0) { _mesa_DrawTexfvOES(a0); }
+static void w_1022(void *rctx, void * a0) { SWEET_GLI_ENSURE(rctx); _mesa_DrawTexfvOES(a0); }
 extern void _mesa_InvalidateFramebuffer(unsigned int, int, void *);
-static void w_1023(void *rctx, unsigned int a0, int a1, void * a2) { _mesa_InvalidateFramebuffer(a0, a1, a2); }
+static void w_1023(void *rctx, unsigned int a0, int a1, void * a2) { SWEET_GLI_ENSURE(rctx); _mesa_InvalidateFramebuffer(a0, a1, a2); }
 extern void _mesa_InvalidateSubFramebuffer(unsigned int, int, void *, int, int, int, int);
-static void w_1028(void *rctx, unsigned int a0, int a1, void * a2, int a3, int a4, int a5, int a6) { _mesa_InvalidateSubFramebuffer(a0, a1, a2, a3, a4, a5, a6); }
+static void w_1028(void *rctx, unsigned int a0, int a1, void * a2, int a3, int a4, int a5, int a6) { SWEET_GLI_ENSURE(rctx); _mesa_InvalidateSubFramebuffer(a0, a1, a2, a3, a4, a5, a6); }
 extern void _mesa_GetInternalformativ(unsigned int, unsigned int, unsigned int, int, void *);
-static void w_1029(void *rctx, unsigned int a0, unsigned int a1, unsigned int a2, int a3, void * a4) { _mesa_GetInternalformativ(a0, a1, a2, a3, a4); }
+static void w_1029(void *rctx, unsigned int a0, unsigned int a1, unsigned int a2, int a3, void * a4) { SWEET_GLI_ENSURE(rctx); _mesa_GetInternalformativ(a0, a1, a2, a3, a4); }
 extern void _mesa_TexStorage2D(unsigned int, int, unsigned int, int, int);
-static void w_1031(void *rctx, unsigned int a0, int a1, unsigned int a2, int a3, int a4) { _mesa_TexStorage2D(a0, a1, a2, a3, a4); }
+static void w_1031(void *rctx, unsigned int a0, int a1, unsigned int a2, int a3, int a4) { SWEET_GLI_ENSURE(rctx); _mesa_TexStorage2D(a0, a1, a2, a3, a4); }
 extern void _mesa_TexStorage3D(unsigned int, int, unsigned int, int, int, int);
-static void w_1032(void *rctx, unsigned int a0, int a1, unsigned int a2, int a3, int a4, int a5) { _mesa_TexStorage3D(a0, a1, a2, a3, a4, a5); }
+static void w_1032(void *rctx, unsigned int a0, int a1, unsigned int a2, int a3, int a4, int a5) { SWEET_GLI_ENSURE(rctx); _mesa_TexStorage3D(a0, a1, a2, a3, a4, a5); }
 
 static long t_0(void) { return sweet_gli_trap(0); }
 static long t_2(void) { return sweet_gli_trap(2); }

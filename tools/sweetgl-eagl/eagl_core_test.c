@@ -45,6 +45,14 @@ static void *thr_cur(void *arg)
 	return NULL;
 }
 
+static void *thr_ensure(void *arg)
+{
+	int c = F.cur_calls;
+	sgl_ensure_current(arg);                      /* bound on main's thread: refused, nothing current here */
+	CHECK(sgl_current() == NULL && F.cur_calls == c);
+	return NULL;
+}
+
 int main(void)
 {
 	struct sweet_gl_surface s, o;
@@ -165,6 +173,20 @@ int main(void)
 	  s = surf(1, 1); CHECK(sgl_attach_surface(e, 1, &s, 0) == -ENOSYS && sgl_flush(e) == -ENOSYS);
 	  CHECK(sgl_tex_image_surface(e, &s, 0, 0, 1, 1, 0, 0, 0, 0) == -ENOSYS);
 	  CHECK(sgl_set_current(NULL) == 0 && sgl_context_destroy(e) == 0); }
+
+	/* sgl_ensure_current: fast path when already current, switches when another context is current, per thread */
+	fresh();
+	{ sgl_ctx *a = sgl_context_create(3), *b = sgl_context_create(3);
+	  CHECK(a && b && F.cur_calls == 0);
+	  sgl_ensure_current(a); CHECK(sgl_current() == a && F.cur_calls == 1 && F.last_cur == sgl_context_backend(a));
+	  sgl_ensure_current(a); CHECK(F.cur_calls == 1);                     /* matching: make_current not called */
+	  sgl_ensure_current(b); CHECK(sgl_current() == b && F.cur_calls == 2 && F.last_cur == sgl_context_backend(b));
+	  CHECK(sgl_context_destroy(a) == 0);                                  /* a was unbound by the switch */
+	  { pthread_t t; pthread_create(&t, NULL, thr_ensure, b); pthread_join(t, NULL); }
+	  CHECK(sgl_current() == b);                                          /* the other thread's attempt (EBUSY) changed nothing here */
+	  sgl_ensure_current(NULL); CHECK(sgl_current() == NULL);             /* NULL rctx = unbind */
+	  sgl_ensure_current(a); CHECK(sgl_current() == NULL);                /* dead ctx ignored */
+	  CHECK(sgl_context_destroy(b) == 0); }
 
 	sgl_reset();
 	printf("%s: %d checks, %d failed\n", fails ? "FAIL" : "PASS", checks, fails);

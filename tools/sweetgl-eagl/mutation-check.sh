@@ -17,6 +17,7 @@ mut attach-no-replace 's/c->att\[i\].s = \*surf;/if (i == c->natt - 1 \&\& 0) c-
 mut pitch-overflow    's/(uint64_t)s->bytes_per_row \* s->h/(uint32_t)(s->bytes_per_row * s->h)/'
 mut skip-current-chk  's/if (c != tl_cur) return -EPERM;/if (0) return -EPERM;/'
 mut leak-es2-ctx      's/if (be.destroy_context) be.destroy_context(be.user, b);//'
+mut ensure-noop 's/(void)sgl_set_current(rctx); .*$//'
 echo "$n mutants, $bad survived"
 [ "$bad" = 0 ] && echo "all mutants killed"
 exit "$bad"

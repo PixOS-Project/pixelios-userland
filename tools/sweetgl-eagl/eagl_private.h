@@ -10,9 +10,9 @@
 @interface EAGLContext : NSObject
 - (id)initWithAPI:(NSUInteger)api properties:(id)properties;                           /* [guess] api is NSUInteger (both refs) */
 - (NSUInteger)API;                                                                     /* [guess] NSUInteger return (sailfish) */
-- (BOOL)setParameter:(unsigned)pname to:(const int *)value;                            /* [guess] BOOL return, int* value (R33: &0) */
+- (uint32_t)setParameter:(unsigned)pname to:(const int *)value;                        /* status, 0 = success (not BOOL) [obs-RE research 34 s.1.1, 0x1d3f52064] */
 - (void *)getMacroContextPrivate;                                                      /* [guess] pointer to { rctx, disp[1036] } (R33, sailfish) */
-/* the first argument is a GL TARGET (GL_TEXTURE_2D), the texture is whichever is bound: both refs treat it so, R33 s.2.1 wrongly says "tex" */
+/* the first argument is a GL TARGET (0xde1 or 0x8d41 GL_RENDERBUFFER per research 34; the shim accepts only 0xde1) (GL_TEXTURE_2D), the texture is whichever is bound: both refs treat it so, R33 s.2.1 wrongly says "tex" */
 - (BOOL)attachImage:(NSUInteger)target toCoreSurface:(IOSurfaceRef)surface invertedRender:(BOOL)inverted;   /* [guess] */
 - (BOOL)texImageIOSurface:(IOSurfaceRef)surface target:(NSUInteger)target internalFormat:(NSUInteger)internalFormat
                     width:(uint32_t)width height:(uint32_t)height format:(NSUInteger)format type:(NSUInteger)type

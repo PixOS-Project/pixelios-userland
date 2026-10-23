@@ -109,7 +109,7 @@ for i in range(NSLOTS):
     call = ', '.join('a%d' % k for k in range(len(ps)))
     wrap.append('extern %s %s(%s);' % (CT[r], mesa, ', '.join(CT[c] for c in ps) or 'void'))
     body = '%s(%s);' % (mesa, call)
-    wrap.append('static %s w_%d(%s) { %s }' % (CT[r], i, decl, body if r == 'void' else 'return ' + body))
+    wrap.append('static %s w_%d(%s) { SWEET_GLI_ENSURE(rctx); %s }' % (CT[r], i, decl, body if r == 'void' else 'return ' + body))
     entries[i] = 'w_%d' % i; target[i] = mesa; report['wired'] += 1
     nint[i] = sum(c not in ('f32', 'f64') for c in ps)
     fakes[mesa] = (r, ps)

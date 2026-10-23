@@ -69,7 +69,7 @@ static id m_init(id self, SEL _cmd, NSUInteger api, id props)
 	}
 	b->c = c;
 	sgl_context_set_user(c, self);   /* unretained: CA holds the EAGLContext */
-	sweet_gli_init(&b->gli, b);       /* rctx = the box: unused by the wrappers, handy in a debugger */
+	sweet_gli_init(&b->gli, c);       /* rctx = the sgl_ctx: the wrappers hand it to sgl_ensure_current */
 	NSValue *v = [NSValue valueWithPointer:b];
 	objc_setAssociatedObject(self, kBox, v, OBJC_ASSOCIATION_RETAIN);
 	return self;
@@ -90,22 +90,27 @@ static void m_dealloc(id self, SEL _cmd)
 
 static NSUInteger m_api(id self, SEL _cmd) { (void)_cmd; sgl_ctx *c = C(self); return c ? (NSUInteger)sgl_context_api(c) : 0; }
 
-/* CA sends setParameter:0x260 to:&0 once and ignores the result (R33 s.2.1). */
-static BOOL m_set_param(id self, SEL _cmd, unsigned pname, const int *v)
+/* CA sends setParameter:0x260 to:&0 once and ignores the result (R33 s.2.1). Apple returns a uint32 status, 0 = success
+ * [obs-RE research 34]; the failure value is 0x2710 as Apple's "not initialised" case (CA never looks). */
+static uint32_t m_set_param(id self, SEL _cmd, unsigned pname, const int *v)
 {
 	(void)_cmd;
-	return v && C(self) && sgl_param_set(C(self), pname, *v) == 0;
+	return v && C(self) && sgl_param_set(C(self), pname, *v) == 0 ? 0 : 0x2710;
 }
 
 static void *m_macro(id self, SEL _cmd) { (void)_cmd; struct ctxbox *b = box_of(self); return b ? &b->gli : NULL; }
 
 /* The first argument is the GL target; the texture is the one CA just bound (make_buffer_current: glGenTextures, glBindTexture, then
- * attachImage, R33 s.2.1). Only GL_TEXTURE_2D (0xde1) is accepted. */
+ * attachImage, R33 s.2.1). Only GL_TEXTURE_2D (0xde1) is accepted. Apple also takes 0x8d41 (GL_RENDERBUFFER) [obs-RE research 34]; CA's
+ * server path never sends it and it is NOT a one-line change here (the backend attaches textures, a renderbuffer needs
+ * GL_RENDERBUFFER_BINDING and renderbuffer storage from the image), so it is refused. CA does not send +setCurrentContext:, so make
+ * the context current first (the core requires it, and the binding query needs it). */
 static BOOL m_attach(id self, SEL _cmd, NSUInteger target, IOSurfaceRef s, BOOL inverted)
 {
 	(void)_cmd;
 	struct sweet_gl_surface ss;
 	sgl_ctx *c = C(self);
+	if (c) sgl_ensure_current(c);
 	unsigned tex = c ? sweet_gli_bound_texture_2d() : 0;
 	return c && target == 0xde1 && tex != 0 && import_surface(s, &ss) == 0 && sgl_attach_surface(c, tex, &ss, inverted) == 0;
 }
@@ -116,6 +121,7 @@ static BOOL m_tex(id self, SEL _cmd, IOSurfaceRef s, NSUInteger target, NSUInteg
 	(void)_cmd;
 	struct sweet_gl_surface ss;
 	sgl_ctx *c = C(self);
+	if (c) sgl_ensure_current(c);
 	return c && import_surface(s, &ss) == 0 &&
 	       sgl_tex_image_surface(c, &ss, (uint32_t)target, (uint32_t)ifmt, w, h, (uint32_t)fmt, (uint32_t)type, plane, invert) == 0;
 }
@@ -142,6 +148,7 @@ __attribute__((constructor)) static void sweet_eagl_install(void)
 	if (!cls) return;
 	Class meta = object_getClass((id)cls);
 	if (sgl_set_backend(sweet_gl_mesa_backend()) != 0) return;
+	sweet_gli_ensure_current = sgl_ensure_current;   /* CA's server path never sets the current context itself */
 	swap(cls, @selector(initWithAPI:properties:), m_init);
 	swap(cls, @selector(dealloc), m_dealloc);
 	swap(cls, @selector(API), m_api);

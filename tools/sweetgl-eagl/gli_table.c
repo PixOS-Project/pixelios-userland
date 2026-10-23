@@ -7,6 +7,8 @@ static void default_log(int slot, const char *name) { fprintf(stderr, "sweetgl: 
 static void (*logger)(int, const char *) = default_log;
 static unsigned char seen[SWEET_GLI_NSLOTS];   /* ponytail: racy bytes, a duplicate log line is the worst case */
 
+void (*sweet_gli_ensure_current)(void *rctx);
+
 void sweet_gli_set_log(void (*fn)(int, const char *)) { logger = fn; }
 
 long sweet_gli_trap(int slot)

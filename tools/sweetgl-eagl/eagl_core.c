@@ -112,6 +112,13 @@ int sgl_set_current(sgl_ctx *c)
 	return r;
 }
 
+/* GLI wrappers call this with their rctx (= the sgl_ctx): CA's server path never sends +setCurrentContext: [src research 34 s.1.2]. */
+void sgl_ensure_current(void *rctx)
+{
+	if (rctx == (void *)tl_cur) return;   /* fast path: no lock, no backend call */
+	(void)sgl_set_current(rctx);          /* -EBUSY (bound on another thread) / -EINVAL (dead): nothing to do, Mesa then has no context */
+}
+
 int sgl_param_set(sgl_ctx *c, uint32_t pname, int32_t value)
 {
 	pthread_mutex_lock(&mu);

@@ -13,6 +13,8 @@ mut() { # name file sed-expr envvar
 }
 mut shift-args       gen_gli.py     "s/\['void \*rctx'\] + \['%s a%d'/['void *rctx', 'long pad'] + ['%s a%d'/" GEN_PY
 mut ignore-override  gen_gli.py     "s/for n in (\[s\['to'\] and 'gl' + s\['to'\]\] if s\['to'\] else \[\]) + s\['names'\]:/for n in s['names']:/;s/^    cands = (\[s\['to'\].*\$/    cands = [v for n in s['names'] for v in variants(n)]/" GEN_PY
+mut no-ensure-wired  gen_gli.py     "s/{ SWEET_GLI_ENSURE(rctx); %s }/{ %s }/" GEN_PY
+mut no-ensure-special gli_special.c "s/unsigned object, unsigned name) { SWEET_GLI_ENSURE(rctx);/unsigned object, unsigned name) {/" SPECIAL_C
 mut trap-every-time  gli_table.c    's/ && !seen\[slot\]//' TABLE_C
 mut init-short       gli_table.c    's/sizeof(t->disp));/sizeof(t->disp) - sizeof(void *));/' TABLE_C
 mut getstring-enum   gli_special.c  's/name == 0x8a1e/name == 0x8a1f/' SPECIAL_C

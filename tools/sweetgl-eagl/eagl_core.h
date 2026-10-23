@@ -68,6 +68,9 @@ void *sgl_context_user(const sgl_ctx *c);        /* NULL if not live */
  * -EIO (backend refused; nothing changes). Switching unbinds the previous context of this thread. */
 int sgl_set_current(sgl_ctx *c);
 sgl_ctx *sgl_current(void);                      /* +currentContext, thread-local */
+/* Make `rctx` (an sgl_ctx *, the rctx word of the GLI table) current on this thread unless it already is (then nothing is called).
+ * Failures are ignored (see sgl_set_current). Hook for gli_table: sweet_gli_ensure_current = sgl_ensure_current. */
+void sgl_ensure_current(void *rctx);
 
 /* setParameter:to: / store. -EINVAL (bad ctx/NULL out), -ENOSPC (SGL_MAX_PARAMS distinct pnames). Last write wins. */
 int sgl_param_set(sgl_ctx *c, uint32_t pname, int32_t value);
