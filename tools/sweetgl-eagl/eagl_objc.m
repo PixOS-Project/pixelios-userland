@@ -20,9 +20,9 @@
 #include "eagl_mesa.h"
 #include "gli_table.h"
 
-/* Kernel side of the IOSurface import (SweetMali selector 5, NOT in the kernel yet): fills *va (GPU VA) for an IOSurface id. Weak so this
- * file links without it; then attach/tex fail with ENOSYS and CA keeps drawing with the CPU into the surface. */
-extern int sweet_gl_kernel_import(uint32_t surface_id, uint64_t *va) __attribute__((weak_import));
+/* Kernel side of the IOSurface import (SweetMali selector 5, xnu patch 0105): fills *va (GPU VA) for an IOSurface id. Defined in
+ * ../sweetgl-mali/sweet_drm_mali.c; -ENOSYS/-ENOENT/-ENODEV when the kernel refuses (CA then keeps drawing with the CPU). */
+extern int sweet_gl_kernel_import(uint32_t surface_id, uint64_t *va);
 
 struct ctxbox {
 	sgl_ctx *c;
@@ -42,7 +42,6 @@ static int import_surface(IOSurfaceRef s, struct sweet_gl_surface *out)
 {
 	uint64_t va = 0;
 	if (!s) return -EINVAL;
-	if (!sweet_gl_kernel_import) return -ENOSYS;
 	out->id = IOSurfaceGetID(s);
 	int r = sweet_gl_kernel_import(out->id, &va);
 	if (r) return r;

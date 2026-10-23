@@ -33,7 +33,7 @@ struct sweet_mali_info {
 };
 _Static_assert(sizeof(struct sweet_mali_info) == 88, "must match the kernel struct (arm64 natural alignment)");
 
-enum { SEL_QUERY, SEL_BO_NEW, SEL_BO_CLOSE, SEL_SUBMIT, SEL_WAIT };
+enum { SEL_QUERY, SEL_BO_NEW, SEL_BO_CLOSE, SEL_SUBMIT, SEL_WAIT, SEL_IMPORT };
 #define SWEET_MALI_EXEC   1u
 #define SWEET_MALI_REQ_FS 1u
 #define WAIT_CHUNK_US     1000000u          /* the kernel clamps one wait to 60 s; loop in 1 s slices */
@@ -44,6 +44,9 @@ enum { SEL_QUERY, SEL_BO_NEW, SEL_BO_CLOSE, SEL_SUBMIT, SEL_WAIT };
 struct bo {
 	bool used, heap;
 	uint64_t va, size, map;
+	uint32_t surf;                      /* IOSurface id if this BO is an import (selector 5), else 0 */
+	bool taken;                         /* an import handed to Mesa by drmPrimeFDToHandle (then Mesa owns the close) */
+	struct sweet_drm_surface info;
 };
 struct sobj {
 	bool used;
@@ -875,16 +878,90 @@ sweet_drm_mali_unregister_surface(int fd)
 	pthread_mutex_unlock(&C.lock);
 }
 
-/* TODO(kernel selector 5, importSurface): in IOSurface id, out handle, GPU VA, size. Does not exist in SweetMali.cpp yet, so this is
- * a stub. When it lands: kcall(5, &id, 1, out, 3) and return out[0..2]; see the contract in sweet_drm_mali.h. */
+/* Lock held. Import IOSurface `id` (selector 5) or return the live import of the same id (dedupe: the kernel would map it twice).
+ * 0 or -errno; *bo is the BO record. */
 static int
-kernel_import_surface(uint32_t surface_id, uint32_t *handle, uint64_t *va, uint64_t *size)
+import_surface(uint32_t id, struct bo **bo)
 {
-	(void)surface_id;
-	(void)handle;
-	(void)va;
-	(void)size;
-	return -ENOSYS;
+	if (id == 0) {
+		return -EINVAL;
+	}
+	for (uint32_t i = 0; i < C.nbos; i++) {
+		if (C.bos[i].used && C.bos[i].surf == id) {
+			*bo = &C.bos[i];
+			return 0;
+		}
+	}
+	uint64_t in = id, out[7];
+	int e = kcall(SEL_IMPORT, &in, 1, out, 7);
+	if (e) {
+		return e;
+	}
+	uint32_t h = (uint32_t)out[0];
+	if (out[0] > UINT32_MAX || out[1] == 0 || out[1] >= (1ull << 32) || out[2] == 0) {   /* contract: VA < 4 GiB, non-empty */
+		if (out[0] != 0 && out[0] <= UINT32_MAX && !bo_get(h)) {
+			(void)kcall(SEL_BO_CLOSE, &out[0], 1, NULL, 0);
+		}
+		return -EIO;
+	}
+	e = bo_add(h, out[1], out[2], false);
+	if (e) {
+		if (e != -EIO) {            /* -EIO = duplicate handle, that BO is live: keep it */
+			(void)kcall(SEL_BO_CLOSE, &out[0], 1, NULL, 0);
+		}
+		return e;
+	}
+	struct bo *b = bo_get(h);
+	b->surf = id;
+	b->info = (struct sweet_drm_surface){ h, out[1], out[2], (uint32_t)out[3], (uint32_t)out[4], (uint32_t)out[5], (uint32_t)out[6] };
+	*bo = b;
+	return 0;
+}
+
+int
+sweet_drm_mali_import_surface(uint32_t id, struct sweet_drm_surface *out)
+{
+	int e = enter();
+	if (e) {
+		return e;
+	}
+	struct bo *b = NULL;
+	e = out ? import_surface(id, &b) : -EINVAL;
+	if (!e) {
+		*out = b->info;
+	}
+	leave();
+	return e;
+}
+
+int
+sweet_drm_mali_release_surface(uint32_t id)
+{
+	int e = enter();
+	if (e) {
+		return e;
+	}
+	e = -ENOENT;
+	for (uint32_t i = 0; i < C.nbos; i++) {
+		if (C.bos[i].used && C.bos[i].surf == id && id != 0) {
+			e = C.bos[i].taken ? 0 : close_bo(i + 1);    /* taken: Mesa closes it via GEM_CLOSE when its resource dies */
+			break;
+		}
+	}
+	leave();
+	return e;
+}
+
+/* The EAGL shim's weak hook (eagl_objc.m): import the surface and report the GPU VA. */
+int
+sweet_gl_kernel_import(uint32_t surface_id, uint64_t *va)
+{
+	struct sweet_drm_surface s;
+	int e = va ? sweet_drm_mali_import_surface(surface_id, &s) : -EINVAL;
+	if (!e) {
+		*va = s.va;
+	}
+	return e;
 }
 
 int
@@ -897,14 +974,14 @@ drmPrimeFDToHandle(int fd, int prime_fd, uint32_t *handle)
 		return e;
 	}
 	struct fdrec *r = fd_get(prime_fd, FD_SURFACE);
-	uint32_t h = 0;
-	uint64_t va = 0, sz = 0;
-	e = !handle || !r ? -EINVAL : kernel_import_surface(r->surface, &h, &va, &sz);
+	struct bo *b = NULL;
+	e = !handle || !r ? -EINVAL : import_surface(r->surface, &b);
+	if (!e && r->size > b->size) {
+		e = -EINVAL;                /* Mesa would size the buffer from lseek() beyond what the kernel mapped */
+	}
 	if (!e) {
-		e = bo_add(h, va, sz, false);
-		if (!e) {
-			*handle = h;
-		}
+		b->taken = true;
+		*handle = b->info.handle;
 	}
 	leave();
 	errno = -e;

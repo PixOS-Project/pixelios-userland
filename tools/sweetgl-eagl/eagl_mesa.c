@@ -170,8 +170,10 @@ static int format_ok(const struct sweet_gl_surface *s)
 /* Bind the surface as storage of the texture currently bound to GL_TEXTURE_2D in the current context. */
 static int bind_to_current_texture(const struct sweet_gl_surface *s)
 {
-   if (!S.up || !format_ok(s))
+   if (!S.up || !format_ok(s)) {
+      sweet_drm_mali_release_surface(s->id);   /* the ObjC layer imported it (selector 5) but Mesa will never take it: boClose */
       return -EINVAL;
+   }
    struct cent *e = NULL, *old = &cache[0];
    for (int i = 0; i < CACHE_N; i++) {
       struct cent *c = &cache[i];
@@ -184,8 +186,11 @@ static int bind_to_current_texture(const struct sweet_gl_surface *s)
    }
    if (!e) {
       struct pipe_resource *res = import_resource(s);
-      if (!res)
-         return errno ? -errno : -EIO;
+      if (!res) {
+         int err = errno ? errno : EIO;
+         sweet_drm_mali_release_surface(s->id);   /* no-op if Mesa took the handle (its resource free closes it) */
+         return -err;
+      }
       e = old;
       cache_drop(e);
       *e = (struct cent){ res, s->id, s->w, s->h, s->bytes_per_row, s->va, 0 };
@@ -220,6 +225,9 @@ static void be_destroy_context(void *user, void *bctx)
 {
    (void)user;
    st_destroy_context(bctx);
+   /* Evict the import cache: each resource unreference ends in GEM_CLOSE -> boClose once no texture still holds it. */
+   for (int i = 0; i < CACHE_N; i++)
+      cache_drop(&cache[i]);
 }
 
 static int be_make_current(void *user, void *bctx)

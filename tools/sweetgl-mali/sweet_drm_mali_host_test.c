@@ -337,7 +337,47 @@ main(void)
 	CHECK(sweet_drm_mali_register_surface(pf, 1234, 0x8000) == -EINVAL);   /* lseek(SEEK_END) says 0x10000 */
 	CHECK(sweet_drm_mali_register_surface(pf, 1234, 0x10000) == 0);
 	uint32_t ph = 0;
-	CHECK(drmPrimeFDToHandle(devfd, pf, &ph) == -ENOSYS && errno == ENOSYS && ph == 0);   /* kernel selector 5 does not exist yet */
+	/* surface 1234 is unknown to the kernel (selector 5: kIOReturnNotFound) */
+	unsigned imp0 = fake_count(5), live0 = fake.live_bos;
+	CHECK(drmPrimeFDToHandle(devfd, pf, &ph) == -ENOENT && errno == ENOENT && ph == 0);
+	CHECK(fake_count(5) == imp0 + 1 && fake_last(5)->nin == 1 && fake_last(5)->in[0] == 1234 && fake.live_bos == live0);
+	fake_add_surface(1234, 0x10000, 1024 * 4, 256, 64, 0x42475241);
+	fake_add_surface(1235, 0x10001, 4, 1, 1, 1);            /* length not a 16 KiB multiple: Unsupported */
+	fake_add_surface(1236, 0x4000, 4096, 1024, 4, 0x42475241);
+	struct sweet_drm_surface si;
+	CHECK(sweet_drm_mali_import_surface(1235, &si) == -ENOSYS && fake.live_bos == live0);
+	CHECK(sweet_drm_mali_import_surface(0, &si) == -EINVAL && sweet_drm_mali_import_surface(1234, NULL) == -EINVAL);
+	fake.fail_sel[5] = kIOReturnNotReady;
+	CHECK(sweet_drm_mali_import_surface(1234, &si) == -ENODEV && fake.live_bos == live0);   /* one-shot error injected */
+	fake.fail_sel[5] = kIOReturnNoResources;
+	CHECK(drmPrimeFDToHandle(devfd, pf, &ph) == -ENOMEM && ph == 0);
+	/* success: ABI outputs, length/pitch, VA below 4 GiB, dedupe */
+	CHECK(sweet_drm_mali_import_surface(1234, &si) == 0);
+	CHECK(si.handle != 0 && si.va != 0 && si.va < (1ull << 32) && si.len == 0x10000 && si.bytes_per_row == 4096 &&
+	      si.width == 256 && si.height == 64 && si.pixel_format == 0x42475241);
+	CHECK(fake.live_bos == live0 + 1);
+	struct sweet_drm_surface si2;
+	CHECK(sweet_drm_mali_import_surface(1234, &si2) == 0 && si2.handle == si.handle && si2.va == si.va && fake.live_bos == live0 + 1);
+	uint64_t ivaq = 0;
+	CHECK(sweet_gl_kernel_import(1234, &ivaq) == 0 && ivaq == si.va && sweet_gl_kernel_import(1234, NULL) == -EINVAL);
+	CHECK(sweet_gl_kernel_import(9999, &ivaq) == -ENOENT);
+	/* prime fd -> handle: the same handle, usable like a BO (offset query, map, then close frees the kernel BO) */
+	CHECK(drmPrimeFDToHandle(devfd, pf, &ph) == 0 && ph == si.handle);
+	struct drm_panfrost_get_bo_offset pgo = { .handle = ph };
+	CHECK(io(DRM_IOCTL_PANFROST_GET_BO_OFFSET, &pgo) == 0 && pgo.offset == si.va);
+	unsigned closes0 = fake_count(2);
+	CHECK(sweet_drm_mali_release_surface(1234) == 0 && fake_count(2) == closes0 && fake.live_bos == live0 + 1);   /* taken by Mesa: no-op */
+	CHECK(drmCloseBufferHandle(devfd, ph) == 0 && fake_count(2) == closes0 + 1 && fake.live_bos == live0);
+	CHECK(fake_last(2)->in[0] == si.handle);
+	ERR(drmCloseBufferHandle(devfd, ph), EINVAL);
+	/* after the close a new import is a fresh kernel call */
+	CHECK(sweet_drm_mali_import_surface(1234, &si2) == 0 && fake.live_bos == live0 + 1);
+	/* fd size larger than the imported length is refused; an untaken import is closed by release */
+	CHECK(sweet_drm_mali_release_surface(1234) == 0 && fake.live_bos == live0 && sweet_drm_mali_release_surface(1234) == -ENOENT);
+	CHECK(sweet_drm_mali_register_surface(pf, 1236, 0x10000) == 0);
+	CHECK(drmPrimeFDToHandle(devfd, pf, &ph) == -EINVAL && ph != 0);   /* ph unchanged */
+	CHECK(sweet_drm_mali_release_surface(1236) == 0 && fake.live_bos == live0);
+	CHECK(sweet_drm_mali_register_surface(pf, 1234, 0x10000) == 0);
 	CHECK(drmPrimeFDToHandle(devfd, pf + 100, &ph) == -EINVAL);
 	sweet_drm_mali_unregister_surface(pf);
 	CHECK(drmPrimeFDToHandle(devfd, pf, &ph) == -EINVAL);

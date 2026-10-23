@@ -259,7 +259,7 @@ jobs:
           file out/eagl/sweetgl-eagl-link-test
           vtool -show-build out/eagl/sweetgl-eagl-link-test
           # the Mesa state tracker and panfrost must really be inside the binary (ld succeeded, so nothing is undefined)
-          for sym in _st_api_create_context _st_finish _panfrost_drm_screen_create __mesa_EGLImageTargetTexture2DOES _sgl_context_create _sweet_drm_mali_open; do
+          for sym in _st_api_create_context _st_finish _panfrost_drm_screen_create __mesa_EGLImageTargetTexture2DOES _sgl_context_create _sweet_drm_mali_open _sweet_gl_kernel_import; do
             nm out/eagl/sweetgl-eagl-link-test | grep -q " [Tt] $sym\$" || { echo "missing defined symbol $sym"; exit 1; }
           done
           echo "EAGLSYMS ok"; nm -u out/eagl/sweetgl-eagl-link-test | wc -l | sed 's/^/EAGLUNDEF-dylib-imports /'
@@ -291,10 +291,10 @@ jobs:
           printf '_sweetgl_state\n' > "$O/exports.txt"
           # libglsl_standalone.a is the offline compiler's scaffolding: it redefines _mesa_problem & co of libmesa.a (run 39987422556)
           LIBS=$(find out/libs -name '*.a' ! -name 'libglsl_standalone.a' | sort)
-          # -U: sweet_gl_kernel_import is weak_import (kernel selector 5 does not exist yet), resolved at run time or NULL
+          # sweet_gl_kernel_import (kernel selector 5 wrapper) is defined in sweet_drm_mali.c, so no -U / weak import any more
           # -dead_strip off: Mesa registers nothing through constructors, but keep the link simple and the symbol checks below meaningful
           xcrun -sdk iphoneos clang++ -arch arm64 -miphoneos-version-min=$IOS_MIN -isysroot "$SDK" -dynamiclib \
-            -install_name /usr/lib/libsweetgl.dylib -exported_symbols_list "$O/exports.txt" -Wl,-U,_sweet_gl_kernel_import \
+            -install_name /usr/lib/libsweetgl.dylib -exported_symbols_list "$O/exports.txt" \
             -o out/libsweetgl.dylib "$O"/*.o $LIBS \
             -framework IOKit -framework CoreFoundation -framework Foundation -framework IOSurface -framework OpenGLES -lobjc -lc++ 2>&1 | tee "$RUNNER_TEMP/link-dylib.log"
           test -f out/libsweetgl.dylib
@@ -311,14 +311,13 @@ jobs:
           BADDEP=$(otool -L $D | tail -n +2 | awk '{print $1}' | grep -vE '^(/usr/lib/|/System/Library/)' || true)
           test -z "$BADDEP" || { echo "non-system dependency: $BADDEP"; exit 1; }
           otool -D $D > "$RUNNER_TEMP/inst.txt"; grep -qx '/usr/lib/libsweetgl.dylib' "$RUNNER_TEMP/inst.txt" || { echo "install name"; exit 1; }
-          # unresolved symbols: all must say "(from <system dylib>)"; only the one weak import is looked up dynamically
+          # unresolved symbols: all must say "(from <system dylib>)"
           nm -um $D > "$RUNNER_TEMP/undef.txt"; wc -l < "$RUNNER_TEMP/undef.txt" | sed 's/^/UNDEF-COUNT /'
-          BADSYM=$(grep -v ' (from ' "$RUNNER_TEMP/undef.txt" | grep -v '_sweet_gl_kernel_import' || true)
+          BADSYM=$(grep -v ' (from ' "$RUNNER_TEMP/undef.txt" || true)
           test -z "$BADSYM" || { echo "unresolved non-system symbols:"; echo "$BADSYM"; exit 1; }
-          ! grep -q '_sweet_gl_kernel_import' "$RUNNER_TEMP/undef.txt" || echo "WEAK-IMPORT sweet_gl_kernel_import (expected)"
           # the DRM emulation symbols Mesa references are defined inside the dylib (hidden is fine, they must not be undefined)
           nm $D > "$RUNNER_TEMP/syms.txt"   # to a file: grep -q on a pipe dies of SIGPIPE under pipefail
-          for sym in _drmIoctl _drmGetVersion _drmGetCap _drmPrimeFDToHandle _sweet_drm_mali_open _sweet_eagl_install _sgl_context_create \
+          for sym in _drmIoctl _drmGetVersion _drmGetCap _drmPrimeFDToHandle _sweet_drm_mali_open _sweet_gl_kernel_import _sweet_drm_mali_release_surface _sweet_eagl_install _sgl_context_create \
                      _st_api_create_context _panfrost_drm_screen_create __mesa_EGLImageTargetTexture2DOES _sweet_gli_defaults; do
             grep -qE " [TtDdSsBb] $sym\$" "$RUNNER_TEMP/syms.txt" || { echo "missing defined symbol $sym"; grep -i "${sym#_}" "$RUNNER_TEMP/syms.txt" | head; exit 1; }
             ! grep -q " $sym\$" "$RUNNER_TEMP/undef.txt" || { echo "$sym is undefined"; exit 1; }

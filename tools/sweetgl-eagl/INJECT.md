@@ -89,7 +89,7 @@ Expected lines: `sweetgl: loaded in backboardd pid N` / `SweetMali user client o
 ## 7. CI checks (stage 5, run 39988248534, all [obs])
 
 `vtool`: platform IOS, minos 16.0, sdk 17.0 (Xcode 15.0 runner SDK); arm64 only; `otool -L`: only `/usr/lib` and `/System/Library` dependencies, install name `/usr/lib/libsweetgl.dylib`;
-`nm -um`: 250 undefined symbols, all `(from <system dylib>)` except the weak import `_sweet_gl_kernel_import` (kernel selector 5 wrapper, not written; linked with `-Wl,-U`, null at run time -> attach/tex fail ENOSYS);
+`nm -um`: 250 undefined symbols, all `(from <system dylib>)` (as of that run `_sweet_gl_kernel_import` was a weak import; it is now defined in sweet_drm_mali.c, selector 5 wrapper, not built in CI yet);
 defined inside (hidden): `_drmIoctl _drmGetVersion _drmGetCap _drmPrimeFDToHandle _sweet_drm_mali_open _sweet_eagl_install _sgl_context_create _st_api_create_context
 _panfrost_drm_screen_create __mesa_EGLImageTargetTexture2DOES _sweet_gli_defaults`; exactly one export, `_sweetgl_state`; `__TEXT,__init_offsets` with 3 entries (`_sweetgl_main` + 2 static initialisers of libglsl.a);
 `codesign --verify --strict` ok, ad hoc. Hidden-visibility note: the DRM emulation symbols are hidden (`-fvisibility=hidden`, Mesa's own flag) and `-exported_symbols_list` hides the rest; hidden symbols still resolve inside one image,

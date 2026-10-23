@@ -25,6 +25,12 @@ fake_reset(void)
 	next_va = 0x2000000;
 }
 
+void
+fake_add_surface(uint32_t id, uint64_t len, uint32_t pitch, uint32_t w, uint32_t h, uint32_t fmt)
+{
+	fake.surfaces[fake.nsurfaces++] = (struct fake_surface){ id, pitch, w, h, fmt, len };
+}
+
 unsigned
 fake_count(uint32_t sel)
 {
@@ -176,6 +182,43 @@ IOConnectCallMethod(mach_port_t c, uint32_t sel, const uint64_t *in, uint32_t ni
 			return kIOReturnSuccess;
 		}
 		return kIOReturnTimeout;
+	case 5: {                            /* importSurface: in id; out handle, va, len, pitch, w, h, format (0105 order) */
+		if (nin != 1 || !out || !nout || *nout < 7) {
+			return kIOReturnBadArgument;
+		}
+		const struct fake_surface *fs = NULL;
+		for (unsigned i = 0; i < fake.nsurfaces; i++) {
+			if (fake.surfaces[i].id == in[0]) {
+				fs = &fake.surfaces[i];
+			}
+		}
+		if (!fs) {
+			return kIOReturnNotFound;
+		}
+		if (fs->len == 0 || (fs->len & 16383)) {
+			return kIOReturnUnsupported;
+		}
+		int s = 0;
+		while (s < MAXBO && bos[s].used) {
+			s++;
+		}
+		if (s == MAXBO) {
+			return kIOReturnNoResources;
+		}
+		bos[s] = (struct fbo){ .used = 1, .va = next_va, .bytes = fs->len, .mem = calloc(1, fs->len) };
+		next_va += fs->len;
+		fake.live_bos++;
+		fake.imports++;
+		out[0] = (uint64_t)s + 1;
+		out[1] = bos[s].va;
+		out[2] = fs->len;
+		out[3] = fs->pitch;
+		out[4] = fs->w;
+		out[5] = fs->h;
+		out[6] = fs->fmt;
+		*nout = 7;
+		return kIOReturnSuccess;
+	}
 	default:
 		return kIOReturnUnsupported;
 	}

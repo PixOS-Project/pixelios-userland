@@ -11,7 +11,7 @@ Tags: **[src file:line]** read from a file, **[obs]** a command I ran on this ho
 
 * `sweet_drm_mali.c/.h`: the implementation. Compiles against Mesa's headers (`xf86drm.h` and `darwin_drm.h` from patches 0002/0004, `drm-uapi/panfrost_drm.h`)
   and either `<IOKit/IOKitLib.h>` or, with `-DSWEET_DRM_HOST_TEST`, `fake_iokit.h`.
-* `fake_iokit.h/.c`: in-memory SweetMali "kernel" for the host test (selectors 0-4, BO map/unmap, one-shot error injection, call log).
+* `fake_iokit.h/.c`: in-memory SweetMali "kernel" for the host test (selectors 0-5, BO map/unmap, one-shot error injection, call log).
 * `sweet_drm_mali_host_test.c`, `host-test.sh MESA_DIR`, `mutation-check.sh MESA_DIR`.
 
 ## Host test (observed)
@@ -47,7 +47,7 @@ What the test does not cover: real concurrency (the fake never blocks), real IOK
 | `ExportSyncFile`, `HandleToFD` | a fresh `open("/dev/null")` fd recorded as `fd -> seqno` (`ExportSyncFile` of a fenceless syncobj: `EINVAL`) |
 | `ImportSyncFile`, `FDToHandle` | copy the recorded seqno; unknown fd `EINVAL` |
 | `drmSyncobjQuery2` | `ENOSYS`: research 32 does not design it, it is not reachable from the JM path, and the value Linux reports for a binary syncobj is unchecked (rule 7) |
-| `drmPrimeFDToHandle` | fd must have been registered with `sweet_drm_mali_register_surface(fd, iosurface_id, size)` (checks `lseek(SEEK_END) == size`); then calls the **kernel selector 5, which does not exist: stub returning `-ENOSYS`** (`kernel_import_surface`, marked TODO). Unregistered fd `-EINVAL`. |
+| `drmPrimeFDToHandle` | fd must have been registered with `sweet_drm_mali_register_surface(fd, iosurface_id, size)` (checks `lseek(SEEK_END) == size`); then **kernel selector 5** (in id; out handle, VA, len, pitch, w, h, format [src 0105]) via `import_surface()`, deduped per surface id while the import is live; the handle is a normal BO (GET_BO_OFFSET, GEM_CLOSE = boClose). `size` larger than the kernel length -> `-EINVAL`. NotFound -> `-ENOENT`, Unsupported -> `-ENOSYS`. Unregistered fd `-EINVAL`. [obs host test only] |
 | `drmPrimeHandleToFD` | `-ENOSYS` |
 | `sweet_drm_mali_open()` | connects on first use and returns a `dup` of a `/dev/null` fd: pass it as the `fd` of `panfrost_create_screen`; Mesa dups and closes it [src research 32 s.2.1]. |
 
@@ -59,7 +59,7 @@ Return conventions follow libdrm as I remember it (`drmIoctl`-based calls: -1 + 
 `IOConnectMapMemory64(memoryType = handle)`: all as in `xnu/patches/0105-sweet-mali-iokit-user-client.patch` `SweetMali.cpp` header comment and `externalMethod` [src].
 Kernel behaviours this code relies on, all [src 0105]: handles are slot+1 and the lowest free slot is reused; `boNew` accepts only flag bit 0 and size <= 256 MiB; `wait` clamps to 60 s and returns `kIOReturnTimeout` when not done;
 `boClose` waits (<= 5 s) for the last submit; only one client may be open at a time (second `IOServiceOpen` fails: `EBUSY`/`ENODEV` here).
-**Selector 5 `importSurface` (to be added to the kernel):** in `IOSurface id`; out `handle, GPU VA (< 4 GiB), size`. The handle must be in the same table as `boNew` handles (so `boClose` frees it and `IOConnectMapMemory64` can map it).
+**Selector 5 `importSurface`** [src 0105]: in `IOSurface id`; out `handle, GPU VA (< 4 GiB), length, bytesPerRow, width, height, pixelFormat`. The handle must be in the same table as `boNew` handles (so `boClose` frees it and `IOConnectMapMemory64` can map it).
 Seqno 0 must never be returned by `submit` (0 means signalled here). Errors map `kIOReturn* -> errno` in `kr_errno()`.
 
 ## Mesa integration (not done on a Mac yet)
@@ -75,7 +75,7 @@ Seqno 0 must never be returned by `submit` (0 means signalled here). Errors map 
 
 ## Not done / known ceilings
 
-* Kernel selector 5 (surface import) and everything IOSurface: import returns `ENOSYS`; export unsupported. Pitch/AFBC rules of imports untouched (research 32 s.2.4).
+* IOSurface export unsupported. Import: `sweet_drm_mali_import_surface/release_surface` and the EAGL hook `sweet_gl_kernel_import` (id -> GPU VA) are host-tested against the fake only; an import Mesa never took is closed by `release_surface` (eagl_mesa.c failure paths), one Mesa took is closed by its GEM_CLOSE (cache eviction / context destroy drop the resource). Pitch/AFBC rules of imports untouched (research 32 s.2.4). Not run on hardware or against the real kernel [guess].
 * Params the kernel struct does not carry return `EINVAL`: `THREAD_TLS_ALLOC` (Mesa falls back to max threads), `SYSTEM_TIMESTAMP`, `SYSTEM_TIMESTAMP_FREQUENCY` (the frequency is a `required` query at version >= 1.3, `panfrost_kmod.c:210-216`; in a release build it silently becomes 0, in a debug build `assert(!required)` fires: either report 1.2 or add the value to the kernel struct once the GPU timestamp clock is measured), `TILER_PRESENT`, `L2_PRESENT`, `STACK_PRESENT`, `CORE_FEATURES`, `COHERENCY_FEATURES`, `JS_FEATURES*`, `NR_CORE_GROUPS` (Mesa does not ask for them [src]).
 * `WAIT_BO` waits for the whole device, not the BO's own last job (upgrade: record the seqno per BO from the `bo_handles` list of `SUBMIT`). `in_syncs` ignored (in-order queue, fragment-after-tiler ordering is the kernel's job: research 32 s.2.2 row 9).
 * Syncobj fds are `/dev/null` dups recorded by fd number; if a caller closes one and the number is reused by an unrelated open, a stale record is still believed (Mesa exports, imports and closes back to back). `FDToHandle` copies the seqno (not a shared live object). A fenceless syncobj (created unsignalled, or reset) cannot be waited on (`EINVAL`), no `WAIT_FOR_SUBMIT` blocking. Timeline points other than 0: `EINVAL`. `Query2`: `ENOSYS`.

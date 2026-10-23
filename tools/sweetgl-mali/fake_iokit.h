@@ -1,6 +1,6 @@
 /*
  * Fake IOKit for the host test: only the calls sweet_drm_mali.c uses, in memory, deterministic. It plays the SweetMali kernel
- * (selectors 0-4 and BO mapping as in sweet_drm_mali.h), validates argument counts like SweetMali.cpp does, and records calls.
+ * (selectors 0-5 and BO mapping as in sweet_drm_mali.h), validates argument counts like SweetMali.cpp does, and records calls.
  * kIOReturn values are from memory of IOReturn.h [guess]; only the names matter to the code under test.
  */
 #ifndef FAKE_IOKIT_H
@@ -49,6 +49,10 @@ struct fake_call {
 	uint64_t in[2];
 	uint32_t nin;
 };
+struct fake_surface {
+	uint32_t id, pitch, w, h, fmt;
+	uint64_t len;                        /* not a multiple of 16 KiB (or 0): selector 5 says kIOReturnUnsupported, as 0105 does */
+};
 struct fake_state {
 	/* inputs */
 	int service_present;                 /* 0: IOServiceGetMatchingService fails */
@@ -58,7 +62,10 @@ struct fake_state {
 	unsigned complete_after_waits;       /* if > 0: after this many Timeout waits, everything submitted completes */
 	kern_return_t fail_sel[8];           /* one-shot failure per selector (0 = none) */
 	kern_return_t map_result;
+	struct fake_surface surfaces[8];     /* IOSurfaces selector 5 knows; others: kIOReturnNotFound */
+	unsigned nsurfaces;
 	/* outputs */
+	unsigned imports;                    /* successful selector 5 calls */
 	struct fake_call calls[512];
 	unsigned ncalls;
 	uint64_t seq;                        /* last seqno handed out */
@@ -68,6 +75,7 @@ struct fake_state {
 	uint64_t last_unmap_addr;
 };
 extern struct fake_state fake;
+void fake_add_surface(uint32_t id, uint64_t len, uint32_t pitch, uint32_t w, uint32_t h, uint32_t fmt);
 void fake_reset(void);                   /* zero everything, service present, GPU_ID 0x92020010 */
 unsigned fake_count(uint32_t sel);       /* recorded calls with this selector */
 const struct fake_call *fake_last(uint32_t sel);
