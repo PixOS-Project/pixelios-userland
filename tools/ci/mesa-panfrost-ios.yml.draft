@@ -218,6 +218,48 @@ jobs:
           echo 'DRMSYMS:'; nm -m out/sweetgl/sweetgl-clear-test | grep -E '_drm(Ioctl|GetVersion|GetCap)|_darwin_drm_bo_map' | sed 's/^/DRMSYMS /'
           rm out/sweetgl/*.o
 
+      - name: Stage 4, link sweetgl-eagl-link-test (EAGL core + Mesa backend, iOS arm64) and ad-hoc codesign
+        run: |
+          B="$RUNNER_TEMP/build-ios"
+          SDK=$(xcrun -sdk iphoneos --show-sdk-path)
+          MAC=$(xcrun -sdk macosx --show-sdk-path)
+          # flags of a state-tracker file: they carry the include dirs for mesa/main/mtypes.h & friends (generated headers too)
+          python3 - "$B" > "$RUNNER_TEMP/cflags-st.txt" <<'PY'
+          import json, shlex, sys
+          b = sys.argv[1]
+          for e in json.load(open(b + "/compile_commands.json")):
+              if e["file"].endswith("src/mesa/state_tracker/st_context.c"):
+                  a = shlex.split(e.get("command") or " ".join(e["arguments"]))[1:]
+                  out, skip = [], False
+                  for x in a:
+                      if skip: skip = False; continue
+                      if x in ("-o", "-MF", "-MQ", "-MT"): skip = True; continue
+                      if x in ("-c", "-MD") or x == e["file"] or x.endswith("st_context.c"): continue
+                      out.append(x)
+                  print("\n".join(out)); break
+          PY
+          CF=(); while IFS= read -r l; do CF+=("$l"); done < "$RUNNER_TEMP/cflags-st.txt"
+          test ${#CF[@]} -gt 0
+          mkdir -p out/eagl
+          E="$GITHUB_WORKSPACE/tools/sweetgl-eagl"
+          (cd "$B" && for f in "sweetgl-mali/sweet_drm_mali" "sweetgl-eagl/eagl_core" "sweetgl-eagl/eagl_mesa" "sweetgl-eagl/eagl_mesa_link_test"; do
+            xcrun -sdk iphoneos clang -arch arm64 -miphoneos-version-min=$IOS_MIN "${CF[@]}" \
+              -Wno-unused-parameter -isystem "$MAC/System/Library/Frameworks/IOKit.framework/Headers" \
+              -I"$E" -I"$GITHUB_WORKSPACE/tools/sweetgl-mali" -I"$MESA/include" -I"$MESA/src/panfrost/darwin_drm" -I"$MESA/src/gallium/drivers" \
+              -I"$MESA/src/mesa" -I"$MESA/src" \
+              -c "$GITHUB_WORKSPACE/tools/$f.c" -o "$GITHUB_WORKSPACE/out/eagl/$(basename $f).o"
+          done)
+          LIBS=$(find out/libs -name '*.a' | sort)
+          xcrun -sdk iphoneos clang++ -arch arm64 -miphoneos-version-min=$IOS_MIN -isysroot "$SDK" \
+            out/eagl/*.o $LIBS \
+            -framework IOKit -framework CoreFoundation -lc++ -o out/eagl/sweetgl-eagl-link-test 2>&1 | tee "$RUNNER_TEMP/link-eagl.log"
+          test -x out/eagl/sweetgl-eagl-link-test
+          codesign -f -s - out/eagl/sweetgl-eagl-link-test
+          file out/eagl/sweetgl-eagl-link-test
+          vtool -show-build out/eagl/sweetgl-eagl-link-test
+          echo "UNDEFINED:"; nm -u out/eagl/sweetgl-eagl-link-test | grep -v '^_' || true
+          rm out/eagl/*.o
+
       - name: Link the dylib (placeholder) and ad-hoc codesign
         run: |
           if [ -x tools/sweetmali/build.sh ]; then

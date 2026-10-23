@@ -52,6 +52,24 @@ build)
 	say "done"
 	echo IOSROOT-GUEST-OK
 	;;
+get)
+	# ios.path=REL: read-only mount of vda, "<16-digit size><bytes of REL>" go to vdb (raw disk).
+	mkdir -p /mnt
+	mount -t hfsplus -o ro,force /dev/vda /mnt || die "mount hfsplus"
+	[ -f "/mnt/${ios_path:?}" ] || die "no $ios_path"
+	{ printf '%016d' "$(stat -c %s "/mnt/$ios_path")"; cat "/mnt/$ios_path"; } >/dev/vdb || die "get"
+	sync
+	echo IOSROOT-GUEST-OK
+	;;
+overlay)
+	# vda = volume (rw), vdb = overlay tar: extracted on top of an existing root.
+	mkdir -p /mnt
+	mount -t hfsplus -o rw,force /dev/vda /mnt || die "mount hfsplus"
+	tar -x -p --numeric-owner -C /mnt -f /dev/vdb || die "tar overlay"
+	sync
+	umount /mnt || die "umount"
+	echo IOSROOT-GUEST-OK
+	;;
 list)
 	# ios.n=N read-only HFS+ images on vda.., listing + key file hashes of each go to the next disk (raw, NUL padded).
 	n=${ios_n:-1}

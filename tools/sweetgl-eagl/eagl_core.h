@@ -1,7 +1,7 @@
 /* eagl_core: the pure C half of the EAGL shim (no ObjC, no Mesa, no IOKit). Host-testable.
  * Holds the context table, per-thread current context, setParameter:to: store and IOSurface attachment bookkeeping;
  * the GL work is delegated to a `struct sweet_gl_backend` (the Mesa side, not written yet).
- * Errors are negative errno values; pointers are NULL on failure with the errno in sgl_errno().
+ * Errors are negative errno values; pointers are NULL on failure with the errno set.
  * Thread safety: one global mutex guards the tables; the current context is thread-local. Backend callbacks run
  * WITH the mutex held (ponytail: backends must not call back into sgl_*; ceiling = a slow glFinish blocks other
  * threads' sgl calls, upgrade to a per-context lock if CA's render threads ever contend). */
