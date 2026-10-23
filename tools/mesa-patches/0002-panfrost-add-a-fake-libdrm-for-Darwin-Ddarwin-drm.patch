@@ -1,0 +1,218 @@
+From e070a711ff82818e1c316f36f255169e4e307024 Mon Sep 17 00:00:00 2001
+From: TheSmuks <60717893+TheSmuks@users.noreply.github.com>
+Date: Fri, 23 Oct 2026 14:22:25 +0200
+Subject: [PATCH 2/4] panfrost: add a fake libdrm for Darwin (-Ddarwin-drm)
+
+Mesa makes dep_libdrm a null_dep when host_machine.system() is not a KMS
+DRM system (meson.build:1920-1934), so every <xf86drm.h> in panfrost
+(panfrost_kmod.c:11, pan_kmod.c:7, pan_kmod.h:25, pan_device.[ch],
+pan_screen.h, pan_resource.c, pan_bo.c, the winsys) fails on iOS.
+
+New boolean option darwin-drm (default false). When true on a darwin host,
+dep_libdrm is a declare_dependency whose include directory is
+src/panfrost/darwin_drm, which holds a declarations-only xf86drm.h: the
+drm* functions that the panfrost build references (drmIoctl, drmGetVersion,
+drmFreeVersion, drmGetCap, drmCloseBufferHandle, drmPrime*, drmSyncobj*).
+Structs and ioctl numbers still come from include/drm-uapi/, which has a
+non-Linux branch; nothing is redefined.
+
+darwin_drm_weak.c has weak ENOSYS definitions, added to libpankmod_lib only
+with the option, so that host tools built from the same tree link; the
+embedding dylib supplies the real (strong) functions.
+
+Not built or run (no Mac/Apple SDK here).
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+---
+ meson.build                               |  8 +++
+ meson.options                             |  8 +++
+ src/panfrost/darwin_drm/darwin_drm_weak.c | 35 ++++++++++
+ src/panfrost/darwin_drm/xf86drm.h         | 82 +++++++++++++++++++++++
+ src/panfrost/lib/kmod/meson.build         |  5 ++
+ 5 files changed, 138 insertions(+)
+ create mode 100644 src/panfrost/darwin_drm/darwin_drm_weak.c
+ create mode 100644 src/panfrost/darwin_drm/xf86drm.h
+
+diff --git a/meson.build b/meson.build
+index 5f19ef9..8c4fecf 100644
+--- a/meson.build
++++ b/meson.build
+@@ -1928,6 +1928,14 @@ if system_has_kms_drm
+       'amdgpu' : _libdrm_checks[1][1] ? 'enabled' : 'disabled',
+     },
+   )
++elif get_option('darwin-drm')
++  if host_machine.system() != 'darwin'
++    error('-Ddarwin-drm=true is only for host_machine.system() == darwin')
++  endif
++  # Fake libdrm: only src/panfrost/darwin_drm/xf86drm.h (declarations).
++  dep_libdrm = declare_dependency(
++    include_directories : include_directories('src/panfrost/darwin_drm'),
++  )
+ else
+   # We should prevent libdrm from being available when the target doesn't have it to avoid transitive
+   # dependencies (such as vk-runtime) linking to it
+diff --git a/meson.options b/meson.options
+index 93a60e3..b955204 100644
+--- a/meson.options
++++ b/meson.options
+@@ -915,3 +915,11 @@ option(
+   value : false,
+   description : 'Build panfrost Rust components.'
+ )
++
++option(
++  'darwin-drm',
++  type : 'boolean',
++  value : false,
++  description : 'Darwin/iOS only: use the fake libdrm in src/panfrost/darwin_drm instead of a real libdrm. ' +
++                'The embedding library has to provide the drm* functions it declares.'
++)
+diff --git a/src/panfrost/darwin_drm/darwin_drm_weak.c b/src/panfrost/darwin_drm/darwin_drm_weak.c
+new file mode 100644
+index 0000000..6f89e7a
+--- /dev/null
++++ b/src/panfrost/darwin_drm/darwin_drm_weak.c
+@@ -0,0 +1,35 @@
++/*
++ * SPDX-License-Identifier: MIT
++ *
++ * Weak no-op definitions of the fake libdrm. They only exist so that host
++ * tools built from the same tree (panfrost_compile, stage 1 of the build)
++ * link; the embedding dylib provides strong definitions that win at link
++ * time. Every call fails with ENOSYS.
++ */
++#include <errno.h>
++
++#include "xf86drm.h"
++
++#define WEAK __attribute__((weak))
++#define FAIL() (errno = ENOSYS, -1)
++
++WEAK int drmIoctl(int fd, unsigned long request, void *arg) { return FAIL(); }
++WEAK drmVersionPtr drmGetVersion(int fd) { return NULL; }
++WEAK void drmFreeVersion(drmVersionPtr v) {}
++WEAK int drmGetCap(int fd, uint64_t c, uint64_t *v) { return FAIL(); }
++WEAK int drmCloseBufferHandle(int fd, uint32_t h) { return FAIL(); }
++WEAK int drmPrimeHandleToFD(int fd, uint32_t h, uint32_t f, int *p) { return FAIL(); }
++WEAK int drmPrimeFDToHandle(int fd, int p, uint32_t *h) { return FAIL(); }
++WEAK int drmSyncobjCreate(int fd, uint32_t f, uint32_t *h) { return FAIL(); }
++WEAK int drmSyncobjDestroy(int fd, uint32_t h) { return FAIL(); }
++WEAK int drmSyncobjHandleToFD(int fd, uint32_t h, int *o) { return FAIL(); }
++WEAK int drmSyncobjFDToHandle(int fd, int o, uint32_t *h) { return FAIL(); }
++WEAK int drmSyncobjImportSyncFile(int fd, uint32_t h, int s) { return FAIL(); }
++WEAK int drmSyncobjExportSyncFile(int fd, uint32_t h, int *s) { return FAIL(); }
++WEAK int drmSyncobjWait(int fd, uint32_t *h, unsigned n, int64_t t, unsigned f, uint32_t *s) { return FAIL(); }
++WEAK int drmSyncobjTimelineWait(int fd, uint32_t *h, uint64_t *p, unsigned n, int64_t t, unsigned f, uint32_t *s) { return FAIL(); }
++WEAK int drmSyncobjReset(int fd, const uint32_t *h, uint32_t n) { return FAIL(); }
++WEAK int drmSyncobjSignal(int fd, const uint32_t *h, uint32_t n) { return FAIL(); }
++WEAK int drmSyncobjTimelineSignal(int fd, const uint32_t *h, uint64_t *p, uint32_t n) { return FAIL(); }
++WEAK int drmSyncobjQuery2(int fd, uint32_t *h, uint64_t *p, uint32_t n, uint32_t f) { return FAIL(); }
++WEAK int drmSyncobjTransfer(int fd, uint32_t d, uint64_t dp, uint32_t s, uint64_t sp, uint32_t f) { return FAIL(); }
+diff --git a/src/panfrost/darwin_drm/xf86drm.h b/src/panfrost/darwin_drm/xf86drm.h
+new file mode 100644
+index 0000000..57af4c1
+--- /dev/null
++++ b/src/panfrost/darwin_drm/xf86drm.h
+@@ -0,0 +1,82 @@
++/*
++ * SPDX-License-Identifier: MIT
++ *
++ * Fake libdrm <xf86drm.h> for Darwin/iOS (Mesa panfrost only).
++ *
++ * Declarations only. There is no DRM on iOS: the definitions are supplied
++ * by the embedding dylib, which emulates these calls in user space on top of
++ * a user client (see README.md in this directory). This header lists exactly
++ * the libdrm symbols that the Mesa 26.2.5 panfrost build references; it is
++ * not a general libdrm replacement.
++ *
++ * The uapi structs and ioctl numbers (DRM_IOCTL_PANFROST_*, drm_gem_close,
++ * DRM_SYNCOBJ_*, DRM_CAP_*) come from Mesa's own include/drm-uapi/ headers,
++ * which have a non-Linux branch that uses <sys/ioccom.h>; nothing is
++ * redefined here.
++ */
++#ifndef DARWIN_DRM_XF86DRM_H
++#define DARWIN_DRM_XF86DRM_H
++
++#include <fcntl.h>
++#include <stddef.h>
++#include <stdint.h>
++#include <sys/types.h>
++
++#include "drm-uapi/drm.h"
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++/* Same values as libdrm's xf86drm.h: flags for drmPrimeHandleToFD() */
++#define DRM_CLOEXEC O_CLOEXEC
++#define DRM_RDWR    O_RDWR
++
++typedef struct _drmVersion {
++   int version_major;
++   int version_minor;
++   int version_patchlevel;
++   int name_len;
++   char *name;
++   int date_len;
++   char *date;
++   int desc_len;
++   char *desc;
++} drmVersion, *drmVersionPtr;
++
++int drmIoctl(int fd, unsigned long request, void *arg);
++drmVersionPtr drmGetVersion(int fd);
++void drmFreeVersion(drmVersionPtr v);
++int drmGetCap(int fd, uint64_t capability, uint64_t *value);
++int drmCloseBufferHandle(int fd, uint32_t handle);
++
++int drmPrimeHandleToFD(int fd, uint32_t handle, uint32_t flags, int *prime_fd);
++int drmPrimeFDToHandle(int fd, int prime_fd, uint32_t *handle);
++
++int drmSyncobjCreate(int fd, uint32_t flags, uint32_t *handle);
++int drmSyncobjDestroy(int fd, uint32_t handle);
++int drmSyncobjHandleToFD(int fd, uint32_t handle, int *obj_fd);
++int drmSyncobjFDToHandle(int fd, int obj_fd, uint32_t *handle);
++int drmSyncobjImportSyncFile(int fd, uint32_t handle, int sync_file_fd);
++int drmSyncobjExportSyncFile(int fd, uint32_t handle, int *sync_file_fd);
++int drmSyncobjWait(int fd, uint32_t *handles, unsigned num_handles,
++                   int64_t timeout_nsec, unsigned flags,
++                   uint32_t *first_signaled);
++int drmSyncobjTimelineWait(int fd, uint32_t *handles, uint64_t *points,
++                           unsigned num_handles, int64_t timeout_nsec,
++                           unsigned flags, uint32_t *first_signaled);
++int drmSyncobjReset(int fd, const uint32_t *handles, uint32_t handle_count);
++int drmSyncobjSignal(int fd, const uint32_t *handles, uint32_t handle_count);
++int drmSyncobjTimelineSignal(int fd, const uint32_t *handles, uint64_t *points,
++                             uint32_t handle_count);
++int drmSyncobjQuery2(int fd, uint32_t *handles, uint64_t *points,
++                     uint32_t handle_count, uint32_t flags);
++int drmSyncobjTransfer(int fd, uint32_t dst_handle, uint64_t dst_point,
++                       uint32_t src_handle, uint64_t src_point,
++                       uint32_t flags);
++
++#ifdef __cplusplus
++}
++#endif
++
++#endif /* DARWIN_DRM_XF86DRM_H */
+diff --git a/src/panfrost/lib/kmod/meson.build b/src/panfrost/lib/kmod/meson.build
+index cb021a3..69d7c0a 100644
+--- a/src/panfrost/lib/kmod/meson.build
++++ b/src/panfrost/lib/kmod/meson.build
+@@ -7,6 +7,11 @@ libpankmod_lib_files = files(
+   'panthor_kmod.c',
+ )
+ 
++if get_option('darwin-drm')
++  # weak ENOSYS stand-ins for the fake libdrm, so host tools link
++  libpankmod_lib_files += files('../../darwin_drm/darwin_drm_weak.c')
++endif
++
+ libpankmod_lib = static_library(
+   'pankmod_lib',
+   [libpankmod_lib_files],
+-- 
+2.47.3
+

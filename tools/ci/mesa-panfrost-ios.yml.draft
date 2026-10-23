@@ -85,17 +85,17 @@ jobs:
       - name: Apply our Mesa patches (placeholder)
         run: |
           # Planned set (doc 32, section 5): darwin-drm shim include dir + meson gating, os_mmap/os_munmap redirect,
-          # eventfd/timerfd guard in panfrost_kmod.c, G78 row in pan_model.c. Patches live in tools/mesa/ of this repo.
+          # eventfd/timerfd guard in panfrost_kmod.c, G78 row in pan_model.c. Patches live in tools/mesa-patches/ of this repo (applied, darwin-drm shim included).
           shopt -s nullglob
-          patches=(tools/mesa/*.patch)
+          patches=(tools/mesa-patches/*.patch)
           if [ ${#patches[@]} -eq 0 ]; then echo "NO PATCHES YET: the build below is expected to fail on xf86drm.h"; fi
           for p in "${patches[@]}"; do patch -d "$MESA" -p1 --no-backup-if-mismatch < "$p"; done
-          if [ -d tools/mesa/darwin-drm ]; then cp -R tools/mesa/darwin-drm "$MESA/src/darwin-drm"; fi
 
       - name: Stage 1, host tools (macOS arm64)
         run: |
           # Same command as docs/drivers/panfrost.rst "Building" in Mesa, plus the switches that keep X/EGL/GL out.
           meson setup "$RUNNER_TEMP/build-host" "$MESA" \
+          -Ddarwin-drm=true \
             --prefix "$RUNNER_TEMP/host-tools" --buildtype=release -Db_ndebug=true \
             -Dtools=panfrost -Dmesa-clc=enabled -Dinstall-mesa-clc=true \
             -Dprecomp-compiler=enabled -Dinstall-precomp-compiler=true \
@@ -147,6 +147,7 @@ jobs:
           export CC="$CLANG" CXX="$CLANGXX"
           unset CFLAGS CXXFLAGS CPPFLAGS LDFLAGS
           meson setup "$RUNNER_TEMP/build-ios" "$MESA" \
+          -Ddarwin-drm=true \
             --cross-file "$RUNNER_TEMP/ios.cross" --native-file "$RUNNER_TEMP/host-tools.native" \
             --wrap-mode=nofallback --buildtype=release -Db_ndebug=true -Ddefault_library=static \
             -Dplatforms= -Degl=disabled -Dglx=disabled -Dgbm=disabled \

@@ -1,0 +1,127 @@
+From ab57726ce1e47adcb649f0dd93da7b4e9fa3e447 Mon Sep 17 00:00:00 2001
+From: TheSmuks <60717893+TheSmuks@users.noreply.github.com>
+Date: Fri, 23 Oct 2026 14:22:48 +0200
+Subject: [PATCH 4/4] panfrost: Darwin hook points for BO mmap/munmap
+
+Linux panfrost mmap()s the DRM node at the offset that
+DRM_IOCTL_PANFROST_MMAP_BO returned (pan_kmod.h:765) and munmap()s it in
+pan_bo.c:346. There is no DRM node on iOS. Under __APPLE__ these two calls
+go to darwin_drm_bo_map() / darwin_drm_bo_unmap(), declared in darwin_drm.h
+and defined by the embedding dylib (the user client maps the BO into the
+task and returns the address as the 'offset').
+
+Prime-fd import (drmPrimeFDToHandle) and syncobjs need no Mesa change:
+they are calls into the fake libdrm declared in xf86drm.h.
+
+Not built or run (no Mac/Apple SDK here).
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+---
+ src/gallium/drivers/panfrost/pan_bo.c |  8 ++++++++
+ src/panfrost/darwin_drm/darwin_drm.h  | 28 +++++++++++++++++++++++++++
+ src/panfrost/lib/kmod/pan_kmod.h      | 10 ++++++++++
+ 3 files changed, 46 insertions(+)
+
+diff --git a/src/gallium/drivers/panfrost/pan_bo.c b/src/gallium/drivers/panfrost/pan_bo.c
+index d0ce95c..9608ea2 100644
+--- a/src/gallium/drivers/panfrost/pan_bo.c
++++ b/src/gallium/drivers/panfrost/pan_bo.c
+@@ -8,6 +8,9 @@
+ #include <pthread.h>
+ #include <stdio.h>
+ #include <xf86drm.h>
++#ifdef __APPLE__
++#include "darwin_drm.h"
++#endif
+ 
+ #include "pan_bo.h"
+ #include "pan_device.h"
+@@ -343,7 +346,12 @@ panfrost_bo_munmap(struct panfrost_bo *bo)
+    if (!bo->ptr.cpu)
+       return;
+ 
++#ifdef __APPLE__
++   if (darwin_drm_bo_unmap((void *)(uintptr_t)bo->ptr.cpu,
++                           panfrost_bo_size(bo))) {
++#else
+    if (os_munmap((void *)(uintptr_t)bo->ptr.cpu, panfrost_bo_size(bo))) {
++#endif
+       mesa_loge("munmap failed: %s", strerror(errno));
+       abort();
+    }
+diff --git a/src/panfrost/darwin_drm/darwin_drm.h b/src/panfrost/darwin_drm/darwin_drm.h
+index 6209093..e699c93 100644
+--- a/src/panfrost/darwin_drm/darwin_drm.h
++++ b/src/panfrost/darwin_drm/darwin_drm.h
+@@ -7,10 +7,38 @@
+ #ifndef DARWIN_DRM_H
+ #define DARWIN_DRM_H
+ 
++#include <stddef.h>
+ #include <stdint.h>
+ 
+ #include "util/os_time.h"
+ 
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++/*
++ * Hook points the embedding dylib must define (strong symbols; no weak
++ * fallback is provided on purpose, a missing one is a link error).
++ *
++ * darwin_drm_bo_map(): called instead of mmap(dev_fd, offset) in
++ * pan_kmod_bo_mmap(). `offset` is the value the emulated
++ * DRM_IOCTL_PANFROST_MMAP_BO returned in drm_panfrost_mmap_bo.offset (Mesa
++ * treats it as opaque, pan_kmod.h bo_get_mmap_offset). Return the CPU
++ * address of the whole BO (`size` bytes) or MAP_FAILED with errno set.
++ * `prot`/`flags` are the mmap arguments Mesa would have used.
++ *
++ * darwin_drm_bo_unmap(): called instead of munmap() in panfrost_bo_munmap()
++ * (pan_bo.c). Return 0 on success, -1 with errno set on failure (Mesa
++ * abort()s on failure).
++ */
++void *darwin_drm_bo_map(int dev_fd, size_t size, int prot, int flags,
++                        uint64_t offset);
++int darwin_drm_bo_unmap(void *addr, size_t size);
++
++#ifdef __cplusplus
++}
++#endif
++
+ /*
+  * Mesa computes "absolute" timeouts with os_time_get_nano() (this is what
+  * DRM_IOCTL_PANFROST_WAIT_BO and drmSyncobjWait take on Linux). Converting to
+diff --git a/src/panfrost/lib/kmod/pan_kmod.h b/src/panfrost/lib/kmod/pan_kmod.h
+index 8d37023..5a298cd 100644
+--- a/src/panfrost/lib/kmod/pan_kmod.h
++++ b/src/panfrost/lib/kmod/pan_kmod.h
+@@ -23,6 +23,9 @@
+ #include <inttypes.h>
+ #include <unistd.h>
+ #include <xf86drm.h>
++#ifdef __APPLE__
++#include "darwin_drm.h"
++#endif
+ 
+ #include "drm-uapi/drm.h"
+ 
+@@ -761,8 +764,15 @@ pan_kmod_bo_mmap(struct pan_kmod_bo *bo, int prot, int flags, void *host_addr)
+    if (mmap_offset < 0)
+       return MAP_FAILED;
+ 
++#ifdef __APPLE__
++   /* No DRM node to mmap: mmap_offset is the user address that the fake
++    * DRM_IOCTL_PANFROST_MMAP_BO returned (see darwin_drm.h). */
++   host_addr = darwin_drm_bo_map(bo->dev->fd, bo->size, prot, flags,
++                                 (uint64_t)mmap_offset);
++#else
+    host_addr =
+       os_mmap(host_addr, bo->size, prot, flags, bo->dev->fd, mmap_offset);
++#endif
+    if (host_addr == MAP_FAILED)
+       mesa_loge("mmap(..., size=%" PRIu64 ", prot=%d, flags=0x%x) failed: %s",
+                 bo->size, prot, flags, strerror(errno));
+-- 
+2.47.3
+
