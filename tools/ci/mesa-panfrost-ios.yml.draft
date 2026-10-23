@@ -1,4 +1,3 @@
-# Observed 2026-10-23: green on TheSmuks/pixelios-gpu-ci (private), run 39978185107: 74 static libs for iOS arm64 (libpanfrost.a, libgallium.a, libmesa.a), vtool platform=iOS checked. libloader/pipe_loader fail on purpose (need real libdrm).
 #
 # Builds Mesa Panfrost (gallium, GLES only) for iOS 16 arm64 on a GitHub macos-14 runner:
 #   stage 1  host tools (mesa_clc, vtn_bindgen2, panfrost_compile) for macOS arm64, needs LLVM + SPIRV-LLVM-Translator
@@ -178,6 +177,45 @@ jobs:
           lipo -info "$f"
           # the platform load command must say iOS (2), not macOS (1)
           o=$(mktemp -d); (cd "$o" && ar -x "$GITHUB_WORKSPACE/$f" && vtool -show-build "$(ls *.o | head -1)")
+
+      - name: Stage 3, link sweetgl-clear-test (iOS arm64 executable) and ad-hoc codesign
+        run: |
+          B="$RUNNER_TEMP/build-ios"
+          SDK=$(xcrun -sdk iphoneos --show-sdk-path)
+          MAC=$(xcrun -sdk macosx --show-sdk-path)
+          # reuse the exact compile flags meson used for pan_screen.c (defines, generated-header include dirs)
+          python3 - "$B" > "$RUNNER_TEMP/cflags.txt" <<'PY'
+          import json, shlex, sys
+          b = sys.argv[1]
+          for e in json.load(open(b + "/compile_commands.json")):
+              if e["file"].endswith("src/gallium/drivers/panfrost/pan_screen.c"):
+                  a = shlex.split(e.get("command") or " ".join(e["arguments"]))[1:]
+                  out, skip = [], False
+                  for x in a:
+                      if skip: skip = False; continue
+                      if x in ("-o", "-MF", "-MQ", "-MT"): skip = True; continue
+                      if x in ("-c", "-MD") or x == e["file"] or x.endswith("pan_screen.c"): continue
+                      out.append(x)
+                  print("\n".join(out)); break
+          PY
+          CF=(); while IFS= read -r l; do CF+=("$l"); done < "$RUNNER_TEMP/cflags.txt"
+          mkdir -p out/sweetgl
+          # cwd must be the build dir: meson include paths are relative to it
+          (cd "$B" && for f in sweet_drm_mali gl_clear_test; do
+            xcrun -sdk iphoneos clang -arch arm64 -miphoneos-version-min=$IOS_MIN "${CF[@]}" \
+              -Wno-unused-parameter -isystem "$MAC/System/Library/Frameworks/IOKit.framework/Headers" \
+              -I"$GITHUB_WORKSPACE/tools/sweetgl-mali" -I"$MESA/include" -I"$MESA/src/panfrost/darwin_drm" -I"$MESA/src/gallium/drivers" \
+              -c "$GITHUB_WORKSPACE/tools/sweetgl-mali/$f.c" -o "$GITHUB_WORKSPACE/out/sweetgl/$f.o"
+          done)
+          LIBS=$(find out/libs -name '*.a' | sort)
+          xcrun -sdk iphoneos clang++ -arch arm64 -miphoneos-version-min=$IOS_MIN -isysroot "$SDK" \
+            out/sweetgl/sweet_drm_mali.o out/sweetgl/gl_clear_test.o $LIBS \
+            -framework IOKit -framework CoreFoundation -lc++ -o out/sweetgl/sweetgl-clear-test 2>&1 | tee "$RUNNER_TEMP/link.log"
+          test -x out/sweetgl/sweetgl-clear-test
+          codesign -f -s - out/sweetgl/sweetgl-clear-test
+          file out/sweetgl/sweetgl-clear-test
+          vtool -show-build out/sweetgl/sweetgl-clear-test
+          rm out/sweetgl/*.o
 
       - name: Link the dylib (placeholder) and ad-hoc codesign
         run: |
