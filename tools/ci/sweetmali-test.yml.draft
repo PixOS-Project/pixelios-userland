@@ -1,4 +1,4 @@
-# DRAFT, inactive: build tools/sweetmali-test for iOS on a macOS runner (the runner's Xcode provides the SDK; nothing from Apple is stored in git).
+# Private CI repo TheSmuks/pixelios-gpu-ci (macOS runner; Apple SDK never stored). Observed 2026-10-23: builds, Mach-O arm64. Copy to .github/workflows/ there.
 name: sweetmali-test
 on:
   workflow_dispatch:
