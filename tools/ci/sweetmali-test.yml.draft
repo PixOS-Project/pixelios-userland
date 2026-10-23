@@ -1,0 +1,15 @@
+# DRAFT, inactive: build tools/sweetmali-test for iOS on a macOS runner (the runner's Xcode provides the SDK; nothing from Apple is stored in git).
+name: sweetmali-test
+on:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build sweetmali-test (iphoneos arm64, ad-hoc signed)
+        run: tools/sweetmali-test/build.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sweetmali-test
+          path: tools/sweetmali-test/out/sweetmali-test
