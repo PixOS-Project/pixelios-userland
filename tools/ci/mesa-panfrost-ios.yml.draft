@@ -1,0 +1,195 @@
+# DRAFT, NOT ACTIVE. Rename to .github/workflows/mesa-panfrost-ios.yml only after the user agrees.
+# Plan and the reason for every step: pixelios-kernel/docs/research/32-mesa-panfrost-ios-plan.md (private super repo).
+#
+# Builds Mesa Panfrost (gallium, GLES only) for iOS 16 arm64 on a GitHub macos-14 runner:
+#   stage 1  host tools (mesa_clc, vtn_bindgen2, panfrost_compile) for macOS arm64, needs LLVM + SPIRV-LLVM-Translator
+#   stage 2  iOS cross build with `xcrun -sdk iphoneos`, no LLVM at runtime, static libs
+#   stage 3  placeholder: link the sweetgl-like dylib (EAGL shim + DRM emulation, not written yet), ad-hoc codesign
+# The iPhoneOS SDK comes with the runner's Xcode (same trick as the kernel workflow). Nothing is downloaded
+# except Mesa source (checked against a sha256) and brew/pip packages. No secrets are used.
+name: mesa-panfrost-ios
+
+on:
+  workflow_dispatch:
+    inputs:
+      mesa_version:
+        description: Mesa release tarball to build (the plan pins 26.2.5)
+        default: "26.2.5"
+      mesa_sha256:
+        description: sha256 of mesa-VERSION.tar.xz (REQUIRED, fill in from archive.mesa3d.org .sha256sum before the first real run)
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mesa-panfrost-ios-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  MESA_VERSION: ${{ inputs.mesa_version || '26.2.5' }}
+  MESA_SHA256: ${{ inputs.mesa_sha256 }}
+  IOS_MIN: "16.0"
+
+jobs:
+  mesa-panfrost-ios:
+    # macos-14 = Apple silicon runner with Xcode 15 (same pin as xnu.yml); the oldest preinstalled Xcode is used
+    runs-on: macos-14
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode and check the iPhoneOS SDK
+        run: |
+          XC=$(ls -d /Applications/Xcode_*.app | sort -V | head -1)
+          echo "DEVELOPER_DIR=$XC/Contents/Developer" >> "$GITHUB_ENV"
+          sudo xcode-select -s "$XC"
+          xcodebuild -version
+          xcrun -sdk iphoneos --show-sdk-path
+          xcrun -sdk iphoneos --find clang
+
+      - name: Install host tools
+        run: |
+          # llvm + spirv-llvm-translator: mesa_clc (stage 1 only). bison/flex: GLSL parser. spirv-tools: >= 2024.1.
+          brew install meson ninja bison flex llvm spirv-llvm-translator spirv-tools pkgconf
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install --quiet mako pyyaml packaging
+          {
+            echo "$RUNNER_TEMP/venv/bin"
+            echo "$(brew --prefix bison)/bin"
+            echo "$(brew --prefix flex)/bin"
+            echo "$(brew --prefix llvm)/bin"
+          } >> "$GITHUB_PATH"
+          echo "PKG_CONFIG_PATH=$(brew --prefix spirv-llvm-translator)/lib/pkgconfig:$(brew --prefix spirv-tools)/lib/pkgconfig:$(brew --prefix llvm)/lib/pkgconfig" >> "$GITHUB_ENV"
+
+      - name: Check the LLVM / SPIRV-LLVM-Translator pairing
+        run: |
+          # Mesa wants LLVMSPIRVLib >= LLVM major.minor and < major.(minor+1) (meson.build:2074-2081 in 26.2.5)
+          LLVMV=$(llvm-config --version)
+          SPV=$(pkg-config --modversion LLVMSPIRVLib)
+          echo "llvm $LLVMV, LLVMSPIRVLib $SPV, spirv-tools $(pkg-config --modversion SPIRV-Tools)"
+          [ "$(echo "$LLVMV" | cut -d. -f1,2)" = "$(echo "$SPV" | cut -d. -f1,2)" ] || { echo "LLVM and SPIRV-LLVM-Translator disagree"; exit 1; }
+          meson --version
+          bison --version | head -1
+          flex --version
+
+      - name: Fetch and verify Mesa
+        run: |
+          test -n "$MESA_SHA256" || { echo "mesa_sha256 input is required"; exit 1; }
+          mkdir -p "$RUNNER_TEMP/src"
+          curl -fsSL -o "$RUNNER_TEMP/mesa.tar.xz" "https://archive.mesa3d.org/mesa-$MESA_VERSION.tar.xz"
+          echo "$MESA_SHA256  $RUNNER_TEMP/mesa.tar.xz" | shasum -a 256 -c -
+          tar -xJf "$RUNNER_TEMP/mesa.tar.xz" -C "$RUNNER_TEMP/src"
+          echo "MESA=$RUNNER_TEMP/src/mesa-$MESA_VERSION" >> "$GITHUB_ENV"
+
+      - name: Apply our Mesa patches (placeholder)
+        run: |
+          # Planned set (doc 32, section 5): darwin-drm shim include dir + meson gating, os_mmap/os_munmap redirect,
+          # eventfd/timerfd guard in panfrost_kmod.c, G78 row in pan_model.c. Patches live in tools/mesa/ of this repo.
+          shopt -s nullglob
+          patches=(tools/mesa/*.patch)
+          if [ ${#patches[@]} -eq 0 ]; then echo "NO PATCHES YET: the build below is expected to fail on xf86drm.h"; fi
+          for p in "${patches[@]}"; do patch -d "$MESA" -p1 --no-backup-if-mismatch < "$p"; done
+          if [ -d tools/mesa/darwin-drm ]; then cp -R tools/mesa/darwin-drm "$MESA/src/darwin-drm"; fi
+
+      - name: Stage 1, host tools (macOS arm64)
+        run: |
+          # Same command as docs/drivers/panfrost.rst "Building" in Mesa, plus the switches that keep X/EGL/GL out.
+          meson setup "$RUNNER_TEMP/build-host" "$MESA" \
+            --prefix "$RUNNER_TEMP/host-tools" --buildtype=release -Db_ndebug=true \
+            -Dtools=panfrost -Dmesa-clc=enabled -Dinstall-mesa-clc=true \
+            -Dprecomp-compiler=enabled -Dinstall-precomp-compiler=true \
+            -Dllvm=enabled -Dgallium-drivers= -Dvulkan-drivers= -Dplatforms= \
+            -Dglx=disabled -Degl=disabled -Dgbm=disabled -Dopengl=false -Dgles1=disabled -Dgles2=disabled \
+            -Dzstd=disabled -Dexpat=disabled -Dxmlconfig=disabled -Dshader-cache=disabled \
+            -Dvalgrind=disabled -Dlibunwind=disabled -Dlmsensors=disabled -Dbuild-tests=false \
+            -Dpanfrost-rust=false --wrap-mode=nofallback
+          meson install -C "$RUNNER_TEMP/build-host"
+          ls -l "$RUNNER_TEMP/host-tools/bin"
+          for t in mesa_clc vtn_bindgen2 panfrost_compile; do test -x "$RUNNER_TEMP/host-tools/bin/$t" || { echo "missing host tool $t"; exit 1; }; done
+
+      - name: Stage 2, cross-build Mesa for iOS arm64
+        run: |
+          SDK=$(xcrun -sdk iphoneos --show-sdk-path)
+          CLANG=$(xcrun -sdk iphoneos --find clang)
+          CLANGXX=$(xcrun -sdk iphoneos --find clang++)
+          FLAGS="'-target', 'arm64-apple-ios$IOS_MIN', '-isysroot', '$SDK'"
+          cat > "$RUNNER_TEMP/ios.cross" <<INI
+          [binaries]
+          c = '$CLANG'
+          cpp = '$CLANGXX'
+          objc = '$CLANG'
+          ar = '$(xcrun -sdk iphoneos --find ar)'
+          strip = '$(xcrun -sdk iphoneos --find strip)'
+          pkg-config = 'false'
+          [built-in options]
+          c_args = [$FLAGS]
+          cpp_args = [$FLAGS]
+          objc_args = [$FLAGS]
+          c_link_args = [$FLAGS]
+          cpp_link_args = [$FLAGS]
+          objc_link_args = [$FLAGS]
+          [host_machine]
+          system = 'darwin'
+          subsystem = 'ios'
+          cpu_family = 'aarch64'
+          cpu = 'arm64'
+          endian = 'little'
+          [properties]
+          needs_exe_wrapper = true
+          INI
+          cat > "$RUNNER_TEMP/host-tools.native" <<INI
+          [binaries]
+          mesa_clc = '$RUNNER_TEMP/host-tools/bin/mesa_clc'
+          vtn_bindgen2 = '$RUNNER_TEMP/host-tools/bin/vtn_bindgen2'
+          panfrost_compile = '$RUNNER_TEMP/host-tools/bin/panfrost_compile'
+          INI
+          export CC="$CLANG" CXX="$CLANGXX"
+          unset CFLAGS CXXFLAGS CPPFLAGS LDFLAGS
+          meson setup "$RUNNER_TEMP/build-ios" "$MESA" \
+            --cross-file "$RUNNER_TEMP/ios.cross" --native-file "$RUNNER_TEMP/host-tools.native" \
+            --wrap-mode=nofallback --buildtype=release -Db_ndebug=true -Ddefault_library=static \
+            -Dplatforms= -Degl=disabled -Dglx=disabled -Dgbm=disabled \
+            -Dgallium-drivers=panfrost -Dvulkan-drivers= -Dllvm=disabled \
+            -Dmesa-clc=system -Dprecomp-compiler=system -Dpanfrost-rust=false \
+            -Dopengl=true -Dgles1=disabled -Dgles2=enabled -Dshared-glapi=disabled \
+            -Dzstd=disabled -Dzlib=disabled -Dexpat=disabled -Dxmlconfig=disabled -Dshader-cache=disabled \
+            -Dvalgrind=disabled -Dlibunwind=disabled -Dlmsensors=disabled -Dperfetto=false \
+            -Dbuild-tests=false -Dgallium-rusticl=false -Dtools= -Dteflon=false \
+            -Dgallium-va=disabled -Dvideo-codecs= -Dhtml-docs=disabled -Ddisplay-info=disabled
+          # static_library() targets are not built by default: ask ninja for every .a
+          LIBS=$(ninja -C "$RUNNER_TEMP/build-ios" -t targets all | sed -n 's/^\(src\/.*\.a\): .*/\1/p')
+          ninja -C "$RUNNER_TEMP/build-ios" $LIBS
+
+      - name: Collect static libs and check they are iOS arm64
+        run: |
+          mkdir -p out/libs
+          # macOS cp has no --parents: use cpio (preinstalled)
+          (cd "$RUNNER_TEMP/build-ios" && find src -name '*.a' | cpio -pdm "$GITHUB_WORKSPACE/out/libs/")
+          f=$(find out/libs -name 'libpanfrost.a' | head -1)
+          test -n "$f" || { echo "libpanfrost.a missing"; exit 1; }
+          lipo -info "$f"
+          # the platform load command must say iOS (2), not macOS (1)
+          o=$(mktemp -d); (cd "$o" && ar -x "$GITHUB_WORKSPACE/$f" && vtool -show-build "$(ls *.o | head -1)")
+
+      - name: Link the dylib (placeholder) and ad-hoc codesign
+        run: |
+          if [ -x tools/sweetmali/build.sh ]; then
+            tools/sweetmali/build.sh "$RUNNER_TEMP/build-ios" "$GITHUB_WORKSPACE/out"
+          else
+            echo "tools/sweetmali/build.sh does not exist yet: EAGL shim + DRM emulation + frontend are not written (doc 32 section 7)."
+            echo "placeholder" > out/NO-DYLIB-YET.txt
+          fi
+          for d in out/*.dylib; do
+            [ -e "$d" ] || continue
+            codesign -f -s - "$d"
+            codesign -dv "$d"
+          done
+          (cd out && find . -type f -print0 | xargs -0 shasum -a 256 > SHA256SUMS)
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mesa-panfrost-ios
+          path: out
+          if-no-files-found: warn
