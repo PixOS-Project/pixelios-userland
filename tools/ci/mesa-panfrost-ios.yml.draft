@@ -215,6 +215,7 @@ jobs:
           codesign -f -s - out/sweetgl/sweetgl-clear-test
           file out/sweetgl/sweetgl-clear-test
           vtool -show-build out/sweetgl/sweetgl-clear-test
+          echo 'DRMSYMS:'; nm -m out/sweetgl/sweetgl-clear-test | grep -E '_drm(Ioctl|GetVersion|GetCap)|_darwin_drm_bo_map' | sed 's/^/DRMSYMS /'
           rm out/sweetgl/*.o
 
       - name: Link the dylib (placeholder) and ad-hoc codesign
