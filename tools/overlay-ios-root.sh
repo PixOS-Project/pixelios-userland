@@ -5,8 +5,8 @@
 #
 # BASE.img is left alone. OUT.img = BASE + /usr/local/bin/{sweetmali-test,sweetgl-test} + two jobs in System/Library/xpc/launchd.plist
 # (keys are plist paths like the Apple jobs: a bare label is ignored by launchd, observed gputest1; the cache launchd reads with launchd_unsecure_cache=1; the plist is read out of BASE, so every other edit stays):
-#   org.pixelios.sweetmali-test  RunAtLoad
-#   org.pixelios.sweetgl-test    StartInterval 90 (runs after the first test has closed the one allowed SweetMali client)
+#   org.pixelios.sweetmali-{nomap,map,wc}  one SweetMali client run each, at load / +60 s / +120 s (the client is exclusive; mode = argv[1], see sweetmali_test.c)
+#   org.pixelios.sweetgl-test              StartInterval 240
 # Their stdout is /dev/null, which patch 0048 copies into the kernel/USB log as "|name| text" for the names in boot-arg
 # sweetnull (the process name is cut at 16 chars, hence "sweetgl-test"): boot with  --args "sweetmali=1 sweetnull=sweetmali-test,sweetgl-test,backboardd,SpringBoard".
 set -euo pipefail
@@ -34,9 +34,12 @@ plist = plistlib.loads(raw[16:16 + n])
 jobs = plist['LaunchDaemons']
 for k in [k for k, j in jobs.items() if j.get('Label', '').startswith('org.pixelios.')]:
     del jobs[k]                                   # rerun on an already overlaid image
-for label, prog, extra in (('sweetmali-test', '/usr/local/bin/sweetmali-test', {'RunAtLoad': True}),
-                           ('sweetgl-test', '/usr/local/bin/sweetgl-test', {'StartInterval': 90})):
-    jobs['/System/Library/LaunchDaemons/org.pixelios.' + label + '.plist'] = dict(Label='org.pixelios.' + label, Program=prog, ProgramArguments=[prog], UserName='root', **extra)
+T = '/usr/local/bin/sweetmali-test'
+for label, args, extra in (('sweetmali-nomap', [T, 'nomap'], {'RunAtLoad': True}),
+                           ('sweetmali-map', [T, 'map'], {'StartInterval': 60}),
+                           ('sweetmali-wc', [T, 'wc'], {'StartInterval': 120}),
+                           ('sweetgl-test', ['/usr/local/bin/sweetgl-test'], {'StartInterval': 240})):
+    jobs['/System/Library/LaunchDaemons/org.pixelios.' + label + '.plist'] = dict(Label='org.pixelios.' + label, Program=args[0], ProgramArguments=args, UserName='root', **extra)
 data = plistlib.dumps(plist, fmt=plistlib.FMT_BINARY)
 with tarfile.open(w + '/overlay.tar', 'w', format=tarfile.GNU_FORMAT) as t:
     def add(name, payload, mode, isdir=False):

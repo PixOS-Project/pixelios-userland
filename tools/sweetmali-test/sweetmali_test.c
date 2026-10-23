@@ -39,8 +39,10 @@ say(const char *fmt, ...)
 }
 
 int
-main(void)
+main(int argc, char **argv)
 {
+	/* argv[1]: nomap (stop after boNew), map (CPU map, default cache mode), wc (default: write-combine map, then run the job) */
+	const char *mode = argc > 1 ? argv[1] : "wc";
 	g_null = open("/dev/null", O_WRONLY);
 	io_service_t svc = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("SweetMali"));
 	io_connect_t c = 0;
@@ -66,10 +68,16 @@ main(void)
 		return 2;
 	}
 	uint64_t handle = out[0], gva = out[1], bytes = out[2];
+	if (strcmp(mode, "nomap") == 0) {
+		say("sweetmali-test: PASS nomap handle=%llu va=%#llx\n", (unsigned long long)handle, (unsigned long long)gva);
+		IOConnectCallMethod(c, SEL_BO_CLOSE, &handle, 1, NULL, 0, NULL, NULL, NULL, NULL);
+		IOServiceClose(c);
+		return 0;
+	}
 	say("sweetmali-test: step boNew ok handle=%llu va=%#llx bytes=%llu\n", (unsigned long long)handle, (unsigned long long)gva, (unsigned long long)bytes);
 	mach_vm_address_t addr = 0;
 	mach_vm_size_t sz = 0;
-	kr = IOConnectMapMemory64(c, (uint32_t)handle, mach_task_self(), &addr, &sz, kIOMapAnywhere | kIOMapWriteCombineCache);
+	kr = IOConnectMapMemory64(c, (uint32_t)handle, mach_task_self(), &addr, &sz, kIOMapAnywhere | (strcmp(mode, "map") == 0 ? kIOMapDefaultCache : kIOMapWriteCombineCache));
 	if (kr != KERN_SUCCESS) {
 		say("sweetmali-test: FAIL map kr=%#x\n", kr);
 		return 2;
