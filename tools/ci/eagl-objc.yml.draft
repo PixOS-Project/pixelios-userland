@@ -1,0 +1,41 @@
+# Compile-only check of the EAGL shim's ObjC layer + GLI table for iOS 16 arm64 (no Mesa needed: eagl_objc.m only sees our own headers).
+# -fno-objc-arc: the shim replaces IMPs with C functions on raw `id` and calls NSObject's -dealloc by hand (see eagl_objc.m header).
+# Lives in the private CI repo (.github/workflows/eagl-objc.yml); sources are copied to tools/sweetgl-eagl/ there.
+name: eagl-objc
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "tools/sweetgl-eagl/**"
+      - ".github/workflows/eagl-objc.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  eagl-objc:
+    runs-on: macos-14
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode and check the iPhoneOS SDK
+        run: |
+          XC=$(ls -d /Applications/Xcode_*.app | sort -V | head -1)
+          echo "DEVELOPER_DIR=$XC/Contents/Developer" >> "$GITHUB_ENV"
+          sudo xcode-select -s "$XC"
+          xcrun -sdk iphoneos --show-sdk-path
+          xcrun -sdk iphoneos clang --version | head -1
+      - name: Compile eagl_objc.m, eagl_core.c, gli_* for iOS arm64 with -Wall -Wextra -Werror
+        run: |
+          cd tools/sweetgl-eagl
+          mkdir -p "$RUNNER_TEMP/o"
+          CC="xcrun -sdk iphoneos clang -arch arm64 -miphoneos-version-min=16.0 -Wall -Wextra -Werror -Wno-unused-parameter -I."
+          $CC -fno-objc-arc -c eagl_objc.m -o "$RUNNER_TEMP/o/eagl_objc.o"
+          for f in eagl_core gli_table gli_table_gen gli_special; do $CC -std=c11 -c $f.c -o "$RUNNER_TEMP/o/$f.o"; done
+          # the generated table is defined, and the Mesa entry points it needs are the only undefined _mesa_ symbols
+          nm -g "$RUNNER_TEMP/o/gli_table_gen.o" | grep -q ' _sweet_gli_defaults$'
+          nm -u "$RUNNER_TEMP/o/gli_table_gen.o" | grep -c '^__mesa_' | sed 's/^/MESA-UNDEFINED /'
+          nm -u "$RUNNER_TEMP/o/eagl_objc.o" | grep -E 'objc_msgSendSuper|_sgl_context_create|_sweet_gli_init'
+          file "$RUNNER_TEMP/o/eagl_objc.o"
+          vtool -show-build "$RUNNER_TEMP/o/eagl_objc.o" || true
