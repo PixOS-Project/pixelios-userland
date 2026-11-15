@@ -9,7 +9,7 @@
 Both modes run the same tweaks (apply) over a small file-system object: Live edits a directory, Plan records
 what Live would do. Paths given to the object are relative to the root.
 """
-import fnmatch, io, os, plistlib, shutil, subprocess, sys, tarfile, tempfile
+import fnmatch, io, ipaddress, os, plistlib, shutil, subprocess, sys, tarfile, tempfile
 
 BUILD = '20H392'
 VERSION = '16.7.16'
@@ -354,7 +354,8 @@ DROPPED_JOBS = {'com.apple.CommCenter', 'com.apple.fairplayd.H2', 'com.apple.voi
 
 def tweak_launchd(fs):
     # Panic-on-crash would reboot the phone on the first crashing daemon; baseband-less CommCenter loops, fairplayd
-    # relaunches forever (blocks locationd), vmd retries a missing service, the diagnostics daemons cost CPU;
+    # relaunches forever (blocks locationd), vmd retries a missing service, the diagnostics daemons cost CPU; (bluetoothd was dropped here until the BT port: B-A5, relaunched
+    # every ~10 s: 138x in gputest67, kernel docs/research/44) and cannot run without a BT stack (B-A5; re-add it with the BT port);
     # backboardd needs CA_BACKDROP_SCALE or blurs break on the CPU renderer.
     counts = {'renamed': 0, 'removed': 0, 'backboardd': 0}
 
@@ -372,6 +373,359 @@ def tweak_launchd(fs):
                 counts['backboardd'] += 1
     edit_plist(fs, 'System/Library/xpc/launchd.plist', fix)
     print('launchd.plist: %(renamed)d _PanicOnCrash renamed, %(removed)d jobs removed, %(backboardd)d backboardd patched' % counts)
+
+
+WIFID_PROBE_ENV = 'PIXOS_WIFID_PROBE'          # path of a signed arm64 wifid-probe binary; unset = default root unchanged
+WIFID_PROBE_PATH = 'usr/local/bin/wifid-probe'
+WIFID_PROBE_LABEL = 'com.pixos.wifid-probe'
+WIFID_PROBE_JOB = '/System/Library/LaunchDaemons/' + WIFID_PROBE_LABEL + '.plist'
+
+
+def check_probe_binary(data):
+    """Refuse (ValueError, with the reason) a wifid-probe that the kernel would run without wifid's keychain rights:
+    it must be an arm64 Mach-O whose code signature carries an XML entitlements blob (special slot 5; patch 0035
+    grants nothing for DER-only or missing blobs) naming application-identifier com.apple.wifid,
+    com.apple.private.system-keychain and a non-empty keychain-access-groups (X-W5 s.3)."""
+    if len(data) < 32 or data[:4] != b'\xcf\xfa\xed\xfe' or int.from_bytes(data[4:8], 'little') != 0x0100000c:
+        raise ValueError('not an arm64 Mach-O')
+    ncmds = int.from_bytes(data[16:20], 'little')
+    off, sig = 32, None
+    for _ in range(ncmds):
+        cmd, size = int.from_bytes(data[off:off + 4], 'little'), int.from_bytes(data[off + 4:off + 8], 'little')
+        if size < 8:
+            raise ValueError('corrupt load command')
+        if cmd == 0x1d:                                    # LC_CODE_SIGNATURE
+            sig = (int.from_bytes(data[off + 8:off + 12], 'little'), int.from_bytes(data[off + 12:off + 16], 'little'))
+        off += size
+    if sig is None:
+        raise ValueError('no code signature (the keychain refuses it with -34018)')
+    blob = data[sig[0]:sig[0] + sig[1]]
+    if blob[:4] != b'\xfa\xde\x0c\xc0':
+        raise ValueError('code signature is not a SuperBlob')
+    xml = None
+    for i in range(int.from_bytes(blob[8:12], 'big')):
+        typ, boff = int.from_bytes(blob[12 + 8 * i:16 + 8 * i], 'big'), int.from_bytes(blob[16 + 8 * i:20 + 8 * i], 'big')
+        if typ == 5:                                       # entitlements, XML
+            if blob[boff:boff + 4] != b'\xfa\xde\x71\x71':
+                raise ValueError('entitlements slot is not an XML entitlements blob')
+            xml = blob[boff + 8:boff + int.from_bytes(blob[boff + 4:boff + 8], 'big')]
+    if xml is None:
+        raise ValueError('no XML entitlements blob in the signature (DER-only gets none, patch 0035)')
+    ents = plistlib.loads(xml)
+    if ents.get('application-identifier') != 'com.apple.wifid':
+        raise ValueError('application-identifier is not com.apple.wifid')
+    if ents.get('com.apple.private.system-keychain') is not True:
+        raise ValueError('com.apple.private.system-keychain is not true')
+    if not ents.get('keychain-access-groups'):
+        raise ValueError('keychain-access-groups missing or empty')
+
+
+def tweak_wifid_probe(fs):
+    # One-shot launchd job running wifid-probe (X-W5 s.5): only when PIXOS_WIFID_PROBE names a signed binary.
+    src = os.environ.get(WIFID_PROBE_ENV)
+    if not src:
+        print(f'wifid-probe: not installed ({WIFID_PROBE_ENV} unset), default root unchanged')
+        return
+    with open(src, 'rb') as f:
+        data = f.read()
+    try:
+        check_probe_binary(data)
+    except ValueError as e:
+        raise RuntimeError(f'wifid-probe: {src} refused: {e}') from None
+    fs.makedirs(os.path.dirname(WIFID_PROBE_PATH))
+    fs.write(WIFID_PROBE_PATH, data, 0, 0, 0o755)
+    # No StandardOutPath/StandardErrorPath (T-99f8): launchd's default is /dev/null, and xnu patch 0048 copies what the processes named in boot-arg
+    # `sweetnull` write to /dev/null into the host log as "|name| text". The run adds `wifid-probe` to it. With /dev/console (T-bd9e, 2026-11-07,
+    # run 20261107T041006Z-wlan-runW4-list) the probe ran but none of its text reached the host log [observed].
+    job = {'Label': WIFID_PROBE_LABEL, 'ProgramArguments': ['/' + WIFID_PROBE_PATH], 'RunAtLoad': True,
+           'EnvironmentVariables': {'OS_ACTIVITY_DT_MODE': 'YES'}}     # no KeepAlive: one shot
+
+    def add(pl):
+        jobs = pl['LaunchDaemons']
+        for key in [k for k, j in jobs.items() if j.get('Label') == WIFID_PROBE_LABEL]:
+            del jobs[key]
+        jobs[WIFID_PROBE_JOB] = job
+    edit_plist(fs, 'System/Library/xpc/launchd.plist', add)
+    print(f'wifid-probe: installed /{WIFID_PROBE_PATH} + job {WIFID_PROBE_LABEL} (RunAtLoad, one shot)')
+
+
+BTAPP_ENV = 'PIXOS_BTAPP_BUNDLE'              # path of a signed BTApp.app directory (bt-client/build-app.sh); unset = default root unchanged
+BTAPP_ID = 'com.pixos.btapp'
+BTAPP_DIR = 'Applications/BTApp.app'
+BTAPP_ENTS = {'application-identifier': BTAPP_ID, 'com.apple.bluetooth.system': True,     # sprint-bt: bluetoothd MBFramework session gate (BluetoothManager)
+              'com.apple.private.tcc.allow': ['kTCCServiceBluetoothAlways']}
+
+
+def macho_signature(data):
+    """(entitlements dict or None, CodeDirectory identifier or None) of a signed arm64 Mach-O; ValueError when it is not one."""
+    if len(data) < 32 or data[:4] != b'\xcf\xfa\xed\xfe' or int.from_bytes(data[4:8], 'little') != 0x0100000c:
+        raise ValueError('not an arm64 Mach-O')
+    off, sig = 32, None
+    for _ in range(int.from_bytes(data[16:20], 'little')):
+        cmd, size = int.from_bytes(data[off:off + 4], 'little'), int.from_bytes(data[off + 4:off + 8], 'little')
+        if size < 8:
+            raise ValueError('corrupt load command')
+        if cmd == 0x1d:                                    # LC_CODE_SIGNATURE
+            sig = (int.from_bytes(data[off + 8:off + 12], 'little'), int.from_bytes(data[off + 12:off + 16], 'little'))
+        off += size
+    if sig is None:
+        raise ValueError('no code signature')
+    blob = data[sig[0]:sig[0] + sig[1]]
+    if blob[:4] != b'\xfa\xde\x0c\xc0':
+        raise ValueError('code signature is not a SuperBlob')
+    ents = ident = None
+    for i in range(int.from_bytes(blob[8:12], 'big')):
+        typ, boff = int.from_bytes(blob[12 + 8 * i:16 + 8 * i], 'big'), int.from_bytes(blob[16 + 8 * i:20 + 8 * i], 'big')
+        if typ == 5 and blob[boff:boff + 4] == b'\xfa\xde\x71\x71':
+            ents = plistlib.loads(blob[boff + 8:boff + int.from_bytes(blob[boff + 4:boff + 8], 'big')])
+        if typ == 0 and blob[boff:boff + 4] == b'\xfa\xde\x0c\x02':
+            io_ = boff + int.from_bytes(blob[boff + 20:boff + 24], 'big')
+            ident = blob[io_:blob.index(b'\0', io_)].decode('ascii', 'replace')
+    return ents, ident
+
+
+def check_btapp_bundle(src):
+    """Refuse (ValueError) a BTApp bundle that LaunchServices or bluetoothd would not treat as com.pixos.btapp: Info.plist
+    CFBundleIdentifier (the one key the LS scan requires, T-9524 Q1.2.5) and CFBundleExecutable BTApp, the executable signed
+    with EXACTLY BTAPP_ENTS (XML slot 5, patch 0035) and CodeDirectory identifier == the bundle id (bluetoothd keys its app map
+    by the code-signing id, T-54b1 s1.2), a sealed bundle (_CodeSignature/CodeResources). Returns [(relpath, bytes, mode)]."""
+    info = os.path.join(src, 'Info.plist')
+    if not os.path.isfile(info):
+        raise ValueError('no Info.plist')
+    pl = plistlib.load(open(info, 'rb'))
+    if pl.get('CFBundleIdentifier') != BTAPP_ID:
+        raise ValueError(f'CFBundleIdentifier is {pl.get("CFBundleIdentifier")!r}, not {BTAPP_ID}')
+    if pl.get('CFBundleExecutable') != 'BTApp':
+        raise ValueError('CFBundleExecutable is not BTApp')
+    if not os.path.isfile(os.path.join(src, '_CodeSignature/CodeResources')):
+        raise ValueError('no _CodeSignature/CodeResources (sign the bundle, not only the executable)')
+    with open(os.path.join(src, 'BTApp'), 'rb') as f:
+        ents, ident = macho_signature(f.read())
+    if ents != BTAPP_ENTS:
+        raise ValueError(f'sealed entitlements {ents} != {BTAPP_ENTS}')
+    if ident != BTAPP_ID:
+        raise ValueError(f'CodeDirectory identifier {ident!r} != {BTAPP_ID}')
+    files = []
+    for dp, dirs, names in os.walk(src):
+        dirs.sort()
+        for d in dirs:  # review T-2d63 finding 2: os.walk lists a symlinked dir but never enters it (silently skipped)
+            if os.path.islink(os.path.join(dp, d)):
+                raise ValueError(f'{os.path.relpath(os.path.join(dp, d), src)} is a symlinked directory')
+        for n in sorted(names):
+            full = os.path.join(dp, n)
+            if os.path.islink(full) or not os.path.isfile(full):
+                raise ValueError(f'{os.path.relpath(full, src)} is not a regular file')
+            rel = os.path.relpath(full, src)
+            with open(full, 'rb') as f:
+                files.append((rel, f.read(), 0o755 if rel == 'BTApp' else 0o644))
+    return files
+
+
+def tweak_btapp(fs):
+    # T-2d63: the own foreground app, baked into /Applications so the first boot of the fresh userdata seeds it into
+    # LaunchServices as a System app (T-9524 Q1.2-Q1.4; the dev overlay refuses /Applications, patch 0117). Its launcher
+    # (btapp-launch) ships in the overlay. Owner 0:0 like the other root files [guess, research T-9524 recipe].
+    src = os.environ.get(BTAPP_ENV)
+    if not src:
+        print(f'btapp: not installed ({BTAPP_ENV} unset), default root unchanged')
+        return
+    try:
+        files = check_btapp_bundle(src)
+    except (ValueError, OSError) as e:
+        raise RuntimeError(f'btapp: {src} refused: {e}') from None
+    if not fs.isdir('Applications'):
+        raise RuntimeError('btapp: no Applications/ in the root (tweak_stock_apps runs first)')
+    for rel, data, mode in files:
+        fs.makedirs(os.path.dirname(f'{BTAPP_DIR}/{rel}'))
+        fs.write(f'{BTAPP_DIR}/{rel}', data, 0, 0, mode)
+    print(f'btapp: installed /{BTAPP_DIR} ({len(files)} files, {BTAPP_ID})')
+
+
+PING_BIN_ENV = 'PIXOS_PING_BIN'                # path of a signed arm64 pixos-ping binary; unset = default root unchanged
+PING_TARGET_ENV = 'PIXOS_PING_TARGET'          # IPv4 literal of the host to ping, written into the job env at root build time
+PING_KNOBS = {'PIXOS_PING_COUNT': (1, 100), 'PIXOS_PING_INTERVAL_MS': (10, 10000), 'PIXOS_PING_TIMEOUT_MS': (10, 30000),
+              'PIXOS_PING_WAIT_S': (0, 600)}   # optional, passed through to the job after a range check
+PING_PATH = 'usr/local/bin/pixos-ping'
+PING_LABEL = 'com.pixos.pixos-ping'
+PING_JOB = '/System/Library/LaunchDaemons/' + PING_LABEL + '.plist'
+
+
+def check_ping_binary(data):
+    """Refuse (ValueError, with the reason) a pixos-ping that the kernel would not exec: an arm64 Mach-O with a code
+    signature (SuperBlob with a CodeDirectory, slot 0; ad-hoc `ldid -Cadhoc -S` is enough, it needs no entitlements)."""
+    if len(data) < 32 or data[:4] != b'\xcf\xfa\xed\xfe' or int.from_bytes(data[4:8], 'little') != 0x0100000c:
+        raise ValueError('not an arm64 Mach-O')
+    ncmds = int.from_bytes(data[16:20], 'little')
+    off, sig = 32, None
+    for _ in range(ncmds):
+        cmd, size = int.from_bytes(data[off:off + 4], 'little'), int.from_bytes(data[off + 4:off + 8], 'little')
+        if size < 8:
+            raise ValueError('corrupt load command')
+        if cmd == 0x1d:                                    # LC_CODE_SIGNATURE
+            sig = (int.from_bytes(data[off + 8:off + 12], 'little'), int.from_bytes(data[off + 12:off + 16], 'little'))
+        off += size
+    if sig is None:
+        raise ValueError('no code signature (sign it: ldid -Cadhoc -S)')
+    blob = data[sig[0]:sig[0] + sig[1]]
+    if blob[:4] != b'\xfa\xde\x0c\xc0':
+        raise ValueError('code signature is not a SuperBlob')
+    if 0 not in [int.from_bytes(blob[12 + 8 * i:16 + 8 * i], 'big') for i in range(int.from_bytes(blob[8:12], 'big'))]:
+        raise ValueError('code signature has no CodeDirectory')
+
+
+BTCONF_ENV = 'PIXOS_BT_PLATFORM_CONFIG'        # "1" = write bluetoothd's platform defaults below; unset = default root unchanged
+BTCONF_DOMAIN = 'com.apple.MobileBluetooth.debug'
+# sprint-bt 2026-11-09: bluetoothd reads per-feature overrides with CFPreferencesCopyAppValue(<section>, "com.apple.MobileBluetooth.debug")
+# -> dict -> bool (reader 0x10027b328 in the 20H392 bluetoothd [bin]). LE/SupportsMultipleAdvertising sets the platform flag
+# [platform+0xa0] both ways (0x100259178-0x100259254 [bin]). This BCM4389 firmware answers Apple's multi-advertising VSC 0xfd48 with
+# 0x01 Unknown HCI Command (bt-up9/bt-up10 [obs]); with the flag 0 bluetoothd logs "Using a single advertising instance" (0x1005096a8),
+# takes mode 1 and sets its random address with HCI_LE_Set_Random_Address itself (0x10019159c -> 0x100191614 -> 0x100191b24 [bin]),
+# so LE scanning with Own_Address_Type random no longer fails with 0x12. Telling the stack what the chip supports, not a rewrite.
+BTCONF = {'LE': {'SupportsMultipleAdvertising': False}}
+# sprint-bt 2026-11-10: BTBW_DEFAULT_ROOT=1 leaves the domain as built; the measured-default boot (the phone has no stock root to compare
+# with). Default '1' = the root every sprint-bt boot so far carried; unset or any other value does not write the domain, and the
+# build then says so (a missing setting must never look like the measured default).
+BTCONF_DEFAULT = 'BTBW_DEFAULT_ROOT'
+
+
+def tweak_btconfig(fs):
+    if os.environ.get(BTCONF_ENV) != '1':
+        if os.environ.get(BTCONF_DEFAULT) == '1':
+            print('bt platform config: not written (%s unset, %s=1: measured default root)' % (BTCONF_ENV, BTCONF_DEFAULT))
+        else:
+            print('bt platform config: not written (%s unset, %s missing: NOT the measured default)' % (BTCONF_ENV, BTCONF_DEFAULT))
+        return
+    path = f'private/var/mobile/Library/Preferences/{BTCONF_DOMAIN}.plist'
+    pl = plistlib.loads(fs.read(path)) if fs.exists(path) else {}
+    for sec, keys in BTCONF.items():
+        pl.setdefault(sec, {}).update(keys)
+    fs.write(path, plistlib.dumps(pl, fmt=plistlib.FMT_BINARY), MOBILE, MOBILE, 0o600)
+    print('bt platform config: %s %s' % (BTCONF_DOMAIN, ', '.join('%s/%s=%r' % (s, k, v) for s, d in BTCONF.items() for k, v in d.items())))
+
+
+CATRACE_ENV = 'PIXOS_COREAUDIO_TRACE'          # "1" = VirtualAudio trace keys + persisted Debug logging for com.apple.coreaudio; unset = nothing written
+CATRACE_KEYS = ('traceroutingmanager', 'traceportmanager', 'traceroutinghandler', 'tracerouting')
+CATRACE_DOMAIN = 'com.apple.coreaudio'
+# /Library/Preferences is a symlink to ../private/var/preferences in the staged root (hfs_read of the bt-proper-root3 image [obs]), so the
+# any-user plist and the logging override live below private/var/preferences (Logging/Subsystems exists there, empty, in the stock root [obs]).
+CATRACE_ANYUSER = f'private/var/preferences/{CATRACE_DOMAIN}.plist'
+CATRACE_MOBILE = f'private/var/mobile/Library/Preferences/{CATRACE_DOMAIN}.plist'
+CATRACE_LOGPROFILE = f'private/var/preferences/Logging/Subsystems/{CATRACE_DOMAIN}.plist'
+CATRACE_LOGSTOCK = f'System/Library/Preferences/Logging/Subsystems/{CATRACE_DOMAIN}.plist'
+# Key layout copied from Apple's own profiles in the 20H392 root: DEFAULT-OPTIONS -> Level {Enable, Persist} and TTL {Default, Info, Debug}
+# (com.apple.AppleEmbeddedGPU.plist: Level Enable/Persist = Info, TTL 7/7/7; com.apple.ConditionInducer.HighSeverity.plist: Level Enable = Debug,
+# Persist = Info). The stock com.apple.coreaudio.plist (DEFAULT-OPTIONS Default-Privacy-Setting = Public, per-category Enable-Oversize-Messages)
+# is kept and the Level/TTL keys are added to its DEFAULT-OPTIONS.
+CATRACE_LEVEL = {'Enable': 'Debug', 'Persist': 'Debug'}
+CATRACE_TTL = {'Default': 7, 'Info': 7, 'Debug': 7}
+
+
+def tweak_coreaudio_trace(fs):
+    # docs/research/bt-a2dp-route-after-open.md s.7.2: VirtualAudio log scopes are CFPreferences keys (value 'minutiae' = level 6) and the decisive
+    # rows are debug-level os_log messages, so the unified log must also keep Debug for the subsystem. Opt-in; every write is logged.
+    if os.environ.get(CATRACE_ENV) != '1':
+        print(f'coreaudio trace: not written ({CATRACE_ENV} unset)')
+        return
+    for path, uid, gid, mode in ((CATRACE_MOBILE, MOBILE, MOBILE, 0o600), (CATRACE_ANYUSER, 0, 0, 0o644)):
+        pl = plistlib.loads(fs.read(path)) if fs.exists(path) else {}
+        pl.update({k: 'minutiae' for k in CATRACE_KEYS})
+        fs.write(path, plistlib.dumps(pl, fmt=plistlib.FMT_BINARY), uid, gid, mode)
+        print('coreaudio trace: %s %s=minutiae' % (path, ','.join(CATRACE_KEYS)))
+    if fs.exists(CATRACE_LOGPROFILE):
+        prof = plistlib.loads(fs.read(CATRACE_LOGPROFILE))
+    elif fs.exists(CATRACE_LOGSTOCK):
+        prof = plistlib.loads(fs.read(CATRACE_LOGSTOCK))
+    else:
+        print('coreaudio trace GAP: stock logging profile %s missing, writing Level/TTL only' % CATRACE_LOGSTOCK)
+        prof = {}
+    opts = prof.setdefault('DEFAULT-OPTIONS', {})
+    opts['Level'] = dict(CATRACE_LEVEL)
+    opts['TTL'] = dict(CATRACE_TTL)
+    fs.makedirs(os.path.dirname(CATRACE_LOGPROFILE))
+    fs.write(CATRACE_LOGPROFILE, plistlib.dumps(prof, fmt=plistlib.FMT_XML), 0, 0, 0o644)
+    print('coreaudio trace: %s DEFAULT-OPTIONS Level=%r TTL=%r' % (CATRACE_LOGPROFILE, CATRACE_LEVEL, CATRACE_TTL))
+
+
+BLUETOOL_ENV = 'PIXOS_BLUETOOL_BIN'            # path of a signed arm64 pixos-bluetool; unset = default root unchanged
+BLUETOOL_PATH = 'usr/local/libexec/pixos-bluetool'
+BLUETOOL_LABEL = 'com.apple.BlueTool'
+BLUETOOL_STOCK_ARGS = ['/usr/sbin/BlueTool', '-R']
+
+
+def tweak_bluetool(fs):
+    # docs/research/bt-pixos-bluetool-spec.md: replace the com.apple.BlueTool service by pixos-bluetool. ONLY the job's ProgramArguments
+    # change; a missing job or non-stock ProgramArguments is refused (never guess what else the root carries), every other key is verified unchanged.
+    src = os.environ.get(BLUETOOL_ENV)
+    if not src:
+        print(f'pixos-bluetool: not installed ({BLUETOOL_ENV} unset), default root unchanged')
+        return
+    with open(src, 'rb') as f:
+        data = f.read()
+    try:
+        macho_signature(data)
+    except ValueError as e:
+        raise RuntimeError(f'pixos-bluetool: {src} refused: {e}') from None
+    plist = 'System/Library/xpc/launchd.plist'
+    jobs = plistlib.loads(fs.read(plist)).get('LaunchDaemons', {})
+    hits = [k for k, j in jobs.items() if j.get('Label') == BLUETOOL_LABEL]
+    if len(hits) != 1:
+        raise RuntimeError(f'pixos-bluetool: expected exactly one {BLUETOOL_LABEL} job in launchd.plist, found {len(hits)}')
+    if jobs[hits[0]].get('ProgramArguments') != BLUETOOL_STOCK_ARGS:
+        raise RuntimeError(f'pixos-bluetool: {BLUETOOL_LABEL} ProgramArguments are {jobs[hits[0]].get("ProgramArguments")!r}, '
+                           f'not the stock {BLUETOOL_STOCK_ARGS!r}; refusing')
+    before = {}
+
+    def edit(pl):
+        job = pl['LaunchDaemons'][hits[0]]
+        before.update(job)
+        job['ProgramArguments'] = ['/' + BLUETOOL_PATH]
+        if {k: v for k, v in job.items() if k != 'ProgramArguments'} != {k: v for k, v in before.items() if k != 'ProgramArguments'}:
+            raise RuntimeError('pixos-bluetool: a job key other than ProgramArguments changed')
+    edit_plist(fs, plist, edit)
+    fs.makedirs(os.path.dirname(BLUETOOL_PATH))
+    fs.write(BLUETOOL_PATH, data, 0, 0, 0o755)
+    print(f'pixos-bluetool: installed /{BLUETOOL_PATH}; {BLUETOOL_LABEL} ProgramArguments {BLUETOOL_STOCK_ARGS} -> {["/" + BLUETOOL_PATH]}')
+
+
+def tweak_ping(fs):
+    # One-shot launchd job running pixos-ping (T-847c, P-W3): only when PIXOS_PING_BIN names a signed binary. The target
+    # address is a private value: it comes from PIXOS_PING_TARGET at build time and is never printed or stored in git.
+    src = os.environ.get(PING_BIN_ENV)
+    if not src:
+        print(f'pixos-ping: not installed ({PING_BIN_ENV} unset), default root unchanged')
+        return
+    with open(src, 'rb') as f:
+        data = f.read()
+    try:
+        check_ping_binary(data)
+    except ValueError as e:
+        raise RuntimeError(f'pixos-ping: {src} refused: {e}') from None
+    target = os.environ.get(PING_TARGET_ENV, '')
+    try:
+        if not target or str(ipaddress.IPv4Address(target)) != target:
+            raise ValueError
+    except ValueError:
+        raise RuntimeError(f'pixos-ping: {PING_TARGET_ENV} must be set to an IPv4 literal (the job has nothing to ping otherwise)') from None
+    env = {PING_TARGET_ENV: target}
+    for name, (lo, hi) in PING_KNOBS.items():
+        v = os.environ.get(name)
+        if v is None:
+            continue
+        if not v.isdigit() or not lo <= int(v) <= hi:
+            raise RuntimeError(f'pixos-ping: {name}={v} is not an integer in {lo}..{hi}')
+        env[name] = v
+    fs.makedirs(os.path.dirname(PING_PATH))
+    fs.write(PING_PATH, data, 0, 0, 0o755)
+    job = {'Label': PING_LABEL, 'ProgramArguments': ['/' + PING_PATH], 'RunAtLoad': True,
+           'EnvironmentVariables': env}                    # no KeepAlive: one shot; stdout = launchd default (xnu 0048 sweetnull tee)
+
+    def add(pl):
+        jobs = pl['LaunchDaemons']
+        for key in [k for k, j in jobs.items() if j.get('Label') == PING_LABEL]:
+            del jobs[key]
+        jobs[PING_JOB] = job
+    edit_plist(fs, 'System/Library/xpc/launchd.plist', add)
+    print(f'pixos-ping: installed /{PING_PATH} + job {PING_LABEL} (RunAtLoad, one shot, {len(env)} env keys)')
 
 
 def tweak_containers(fs):
@@ -419,8 +773,14 @@ def tweak_audio(fs):
     # The virtual audio HAL plug-in cannot load here; the recorder server of MediaToolbox is turned off.
     plugin = 'Library/Audio/Plug-Ins/HAL/VirtualAudio.plugin'
     if fs.exists(plugin):
-        fs.makedirs('Library/Audio/Plug-Ins/HAL.disabled')
-        fs.move(plugin, 'Library/Audio/Plug-Ins/HAL.disabled/VirtualAudio.plugin')
+        if os.environ.get('PIXOS_KEEP_VIRTUALAUDIO') == '1':
+            # Opt-in (docs/research/ios-audio-route-no-codec.md s.4.1): without VirtualAudio there is no VAD and AudioQueueStart gives -66680.
+            # It crash-looped mediaserverd on 2026-10-17 without a default device, so the boot must watch for that.
+            print('VirtualAudio.plugin: kept in /Library/Audio/Plug-Ins/HAL (PIXOS_KEEP_VIRTUALAUDIO=1)')
+        else:
+            fs.makedirs('Library/Audio/Plug-Ins/HAL.disabled')
+            fs.move(plugin, 'Library/Audio/Plug-Ins/HAL.disabled/VirtualAudio.plugin')
+            print('VirtualAudio.plugin: moved to /Library/Audio/Plug-Ins/HAL.disabled (default; PIXOS_KEEP_VIRTUALAUDIO=1 keeps it)')
     for cfg in fs.glob('System/Library/Frameworks/MediaToolbox.framework/*/SubServerConfiguration.plist'):
         edit_plist(fs, cfg, lambda pl: pl.__setitem__('StartRecorderServer', False), plistlib.FMT_XML)
 
@@ -510,8 +870,8 @@ def tweak_preferences(fs):
 
 
 def apply(fs):
-    for step in (tweak_launchd, tweak_containers, tweak_activation, tweak_feature_flags, tweak_audio,
-                 tweak_stock_apps, tweak_wallpapers, tweak_device_name, tweak_migration, tweak_preferences):
+    for step in (tweak_launchd, tweak_wifid_probe, tweak_ping, tweak_containers, tweak_activation, tweak_feature_flags, tweak_audio,
+                 tweak_stock_apps, tweak_btapp, tweak_btconfig, tweak_coreaudio_trace, tweak_bluetool, tweak_wallpapers, tweak_device_name, tweak_migration, tweak_preferences):
         step(fs)
 
 

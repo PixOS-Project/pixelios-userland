@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- T-2d63 BTApp (/Applications/BTApp.app), docs/research/T-9524 "App entitlements":
+       application-identifier         = the bundle id, as the probe and stock Settings carry it
+       com.apple.private.tcc.allow    = [kTCCServiceBluetoothAlways]: tccd grants by entitlement (0x1000154d0), no TCC.db row;
+                                         bluetoothd checks this service only for app sessions (state != 0x20, 0x10046ae78).
+     com.apple.bluetooth.system     = true: bluetoothd's MBFramework XPC session gate (BluetoothManager, the path Settings uses):
+                                         access level 1, else every message is dropped with "insufficient entitlements" (sprint-bt; research
+                                         T-a52f Q1.2.4-5, bluetoothd 0x10021d3c0 / 0x100220ec4).
+     Nothing else: patch 0035 marks root binaries platform, the sandbox policy is a permissive stub (patch 0050).
+     build-app.sh refuses a bundle whose sealed entitlements differ from this set. -->
+<plist version="1.0">
+<dict>
+	<key>application-identifier</key>
+	<string>com.pixos.btapp</string>
+	<key>com.apple.bluetooth.system</key>
+	<true/>
+	<key>com.apple.private.tcc.allow</key>
+	<array>
+		<string>kTCCServiceBluetoothAlways</string>
+	</array>
+</dict>
+</plist>

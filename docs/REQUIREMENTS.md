@@ -21,7 +21,7 @@ Tags: *observed* = measured on the maintainer's machine (Debian 13, 16 cores, 24
 ```sh
 tools/build-ios-root-rootless.sh --selftest          # about 8 s once the guest files are downloaded
 tools/build-ios-root-rootless.sh IPSW_DIR OUT.img    # IOS_ROOT_SIZE=16G by default
-python3 tools/check-ios-root.py OUT.img              # host check, 12 checks
+python3 tools/check-ios-root.py OUT.img              # host check, last line PASS|FAIL: IMG: N checks, M failed
 ```
 *Observed*: the full rootless build took 599 s (10 min) on the maintainer's machine with six parallel extraction streams; 21 min 33 s before that change.
 The result is not bit-identical between runs (HFS+ timestamps); `tools/rootless/compare-images.sh A.img B.img` compares listings, hard-link counts and file hashes.

@@ -1,0 +1,101 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: TheSmuks <60717893+TheSmuks@users.noreply.github.com>
+Date: Tue, 3 Nov 2026 01:00:00 +0100
+Subject: [PATCH 5/5] panfrost: Darwin time marks for the submit -> BO wait gap
+
+Three calls to sweet_gapt_mark(id), under __APPLE__ only: id 1 at the end of
+panfrost_batch_cleanup() (pan_job.c), id 2 at the entry of panfrost_batch_init()
+(pan_job.c), id 3 at the entry of panfrost_bo_cache_fetch() (pan_bo.c). The
+embedding dylib (libsweetgl, SWEETGL_GAPT=1) stores a clock reading per mark and
+splits the gap between a submit and the next BO wait into four segments. A mark
+only reads the clock: no Mesa state, submit order or wait result changes.
+pan_bo.c holds a weak no-op definition so an embedder without gap timing links
+unchanged; the dylib's strong definition replaces it. Linux builds are untouched.
+
+Not built here beyond the ci-local mesa stage (see the ticket proof).
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+---
+--- a/src/gallium/drivers/panfrost/pan_bo.c
++++ b/src/gallium/drivers/panfrost/pan_bo.c
+@@ -23,6 +23,15 @@
+ #include "util/u_inlines.h"
+ #include "util/u_math.h"
+ 
++#ifdef __APPLE__
++/* Weak no-op: the embedding dylib (libsweetgl) defines the real sweet_gapt_mark. */
++__attribute__((weak)) void
++sweet_gapt_mark(int id)
++{
++   (void)id;
++}
++#endif
++
+ /* This file implements a userspace BO cache. Allocating and freeing
+  * GPU-visible buffers is very expensive, and even the extra kernel roundtrips
+  * adds more work than we would like at this point. So caching BOs in userspace
+@@ -202,6 +211,9 @@
+ panfrost_bo_cache_fetch(struct panfrost_device *dev, size_t size,
+                         uint32_t flags, const char *label, bool dontwait)
+ {
++#ifdef __APPLE__
++   sweet_gapt_mark(3);
++#endif
+    pthread_mutex_lock(&dev->bo_cache.lock);
+    struct list_head *bucket = pan_bucket(dev, size);
+    struct panfrost_bo *bo = NULL;
+--- a/src/gallium/drivers/panfrost/pan_job.c
++++ b/src/gallium/drivers/panfrost/pan_job.c
+@@ -7,6 +7,10 @@
+ 
+ #include <assert.h>
+ 
++#ifdef __APPLE__
++#include "darwin_drm.h"
++#endif
++
+ #include "util/format/u_format.h"
+ #include "util/hash_table.h"
+ #include "util/ralloc.h"
+@@ -57,6 +61,9 @@
+                     const struct pipe_framebuffer_state *key,
+                     struct panfrost_batch *batch)
+ {
++#ifdef __APPLE__
++   sweet_gapt_mark(2);
++#endif
+    struct pipe_screen *pscreen = ctx->base.screen;
+    struct panfrost_screen *screen = pan_screen(pscreen);
+    struct panfrost_device *dev = &screen->dev;
+@@ -141,6 +148,9 @@
+ 
+    memset(batch, 0, sizeof(*batch));
+    BITSET_CLEAR(ctx->batches.active, batch_idx);
++#ifdef __APPLE__
++   sweet_gapt_mark(1);
++#endif
+ }
+ 
+ static void panfrost_batch_submit(struct panfrost_context *ctx,
+--- a/src/panfrost/darwin_drm/darwin_drm.h
++++ b/src/panfrost/darwin_drm/darwin_drm.h
+@@ -35,6 +35,17 @@
+                         uint64_t offset);
+ int darwin_drm_bo_unmap(void *addr, size_t size);
+ 
++/*
++ * sweet_gapt_mark(id): time mark for the embedding dylib's user-mode gap
++ * timing (SWEETGL_GAPT, GAPM rows). Called with id 1 at the end of
++ * panfrost_batch_cleanup(), 2 at the entry of panfrost_batch_init(), 3 at the
++ * entry of panfrost_bo_cache_fetch(). It only reads the clock: it changes no
++ * Mesa state, no submit order and no wait result. pan_bo.c defines a WEAK
++ * no-op, so an embedder without gap timing links unchanged; the dylib's own
++ * strong definition replaces it.
++ */
++void sweet_gapt_mark(int id);
++
+ #ifdef __cplusplus
+ }
+ #endif
+-- 
+2.47.3

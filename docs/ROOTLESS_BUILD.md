@@ -11,7 +11,7 @@ busybox-static 1.37, downloaded once to `~/pixelios-artifacts/vm`, sha256 pinned
 
 | where | step |
 |---|---|
-| host | `mkfs.hfsplus -s -J -v iOSRoot` on the image file; `apfs-fuse` (as you) mounts the three dmgs |
+| host | `mkfs.hfsplus -s -J -n c=4096,a=4096 -v iOSRoot` on the image file; `apfs-fuse` (as you) mounts the three dmgs |
 | host | `tools/ios-root-plan.py` + `tools/sweet-root-tweaks.py --plan`: read the apfs-fuse trees, write `ops.sh` (mkdir/ln/cp -P/mv/chown/chmod/rm) and `overlay.tar` (new and replaced files with explicit uid/gid/mode: launchd.plist, prefs, keybag, .migrated, PNG twins) |
 | host | `ios-root-plan.py` scans the three trees, cuts them into ~equal-cost disjoint directory subtrees and GNU-tars them (`--numeric-owner`; the SystemOS root renamed to `private/preboot/Cryptexes/OS`, AppOS to `.../App`) into `shell.tar` (the directories above the cuts) and `s1.tar`..`s6.tar` (`ROOTLESS_STREAMS`, default 6; ~12 GB in total). One reader per apfs-fuse mount at a time: concurrent readers got I/O errors (observed) |
 | guest | `/dev/vda` = volume, `vdb` = `shell.tar`, then the streams, last = overlay (raw tars on virtio disks, no network, no 9p). `mount -t hfsplus -o rw,force`, `tar -x -p --numeric-owner` of the shell, then all streams in parallel (one vCPU each; hfsplus serialises on its catalog lock, so more than ~6 gains nothing), `sh -e ops.sh`, `tar -x` overlay, `sync`, `umount`, poweroff |

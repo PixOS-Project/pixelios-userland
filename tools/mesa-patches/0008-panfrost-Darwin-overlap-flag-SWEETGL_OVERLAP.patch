@@ -1,0 +1,378 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: TheSmuks <TheSmuks@users.noreply.github.com>
+Date: Sat, 7 Nov 2026 17:00:00 +0100
+Subject: [PATCH] panfrost: Darwin overlap flag (SWEETGL_OVERLAP, default off)
+
+With env SWEETGL_OVERLAP=1 (needs SWEETGL_SPLITHEAP=1) a process-wide mutex covers the whole of
+jm_submit_batch, and a vertex/tiler submit that passes rule R0-R4 (docs/reviews/T-34eb-proof.md H1,
+pure function in the new pan_sweet_ovl.h) carries the Mesa-private requirement bit
+PANFROST_JD_REQ_SWEET_OVL (1u << 31), consumed by the SweetMali libdrm shim. struct panfrost_batch
+gets sweet_heap_half (-1 until the batch picks a split-heap half). __APPLE__ and PAN_ARCH >= 6 only;
+Linux builds and the default (env unset) are untouched. Not run on hardware.
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+---
+diff --git a/include/drm-uapi/panfrost_drm.h b/include/drm-uapi/panfrost_drm.h
+index 50d5337..db6829f 100644
+--- a/include/drm-uapi/panfrost_drm.h
++++ b/include/drm-uapi/panfrost_drm.h
+@@ -51,6 +51,8 @@ extern "C" {
+ 
+ #define PANFROST_JD_REQ_FS (1 << 0)
+ #define PANFROST_JD_REQ_CYCLE_COUNT (1 << 1)
++/* Mesa-private (T-34eb, patch 0008): "this vertex/tiler submit may overlap the previous fragment job". Consumed by the SweetMali libdrm shim, never sent to a Linux kernel. */
++#define PANFROST_JD_REQ_SWEET_OVL (1u << 31)
+ /**
+  * struct drm_panfrost_submit - ioctl argument for submitting commands to the 3D
+  * engine.
+diff --git a/src/gallium/drivers/panfrost/pan_jm.c b/src/gallium/drivers/panfrost/pan_jm.c
+index ae56883..a91aee4 100644
+--- a/src/gallium/drivers/panfrost/pan_jm.c
++++ b/src/gallium/drivers/panfrost/pan_jm.c
+@@ -15,6 +15,7 @@
+ #include "pan_jm.h"
+ #include "pan_job.h"
+ #include "pan_precomp.h"
++#include "pan_sweet_ovl.h"
+ #include "pan_trace.h"
+ 
+ #ifdef __APPLE__
+@@ -27,6 +28,12 @@
+ #error "JM helpers are only used for gen < 10"
+ #endif
+ 
++#if defined(__APPLE__) && PAN_ARCH >= 6
++/* T-34eb (patch 0008): the overlap flag below needs the split-heap mode of patch 0007, which exists for PAN_ARCH >= 6 only. */
++#define SWEET_OVL 1
++static int sweet_splitheap_mode(struct panfrost_bo *heap);
++#endif
++
+ int
+ GENX(jm_init_batch)(struct panfrost_batch *batch)
+ {
+@@ -69,6 +76,114 @@ GENX(jm_init_batch)(struct panfrost_batch *batch)
+    return 0;
+ }
+ 
++#ifdef SWEET_OVL
++/* T-34eb (patch 0008) overlap of tiler(N+1) with FS(N), default OFF. Env SWEETGL_OVERLAP: unset/""/"0" off, "1" on (needs SWEETGL_SPLITHEAP=1, else one loud line and off),
++ * anything else one loud line and off. Read once per process. With it on, one process-wide mutex covers the WHOLE of GENX(jm_submit_batch), so "the previous submit"
++ * is exact; the rule (R0-R4, docs/reviews/T-34eb-proof.md H1) lives in pan_sweet_ovl.h. A safe vertex/tiler submit carries PANFROST_JD_REQ_SWEET_OVL, never the FS submit. */
++struct sweet_ovl_sets {
++   uint32_t *all, *wr, *vt, *vtw;
++   unsigned n_all, n_wr, n_vt, n_vtw;
++};
++
++static pthread_mutex_t sweet_ovl_mu = PTHREAD_MUTEX_INITIALIZER;
++static struct sweet_ovl_prev sweet_ovl_p;       /* under sweet_ovl_mu; its arrays are malloc'd and owned here */
++static uint64_t sweet_ovl_n[SWEET_OVL_N], sweet_ovl_checked;
++
++static int
++sweet_ovl_mode(struct panfrost_device *dev)
++{
++   static int mode = -1; /* -1 not read yet, 0 off, 1 on */
++   int m = __atomic_load_n(&mode, __ATOMIC_ACQUIRE);
++
++   if (m < 0) {
++      const char *e = getenv("SWEETGL_OVERLAP");
++      m = 0;
++      if (e && e[0] && !(e[0] == '0' && !e[1])) {
++         if (e[0] != '1' || e[1]) {
++            fprintf(stderr, "SWEETGL: OVERLAP unavailable: SWEETGL_OVERLAP=\"%.16s\" is not 0 or 1, overlap OFF\n", e);
++         } else if (sweet_splitheap_mode(dev->tiler_heap) != 1) {
++            fprintf(stderr, "SWEETGL: OVERLAP unavailable: SWEETGL_OVERLAP=1 needs SWEETGL_SPLITHEAP=1, overlap OFF\n");
++         } else {
++            m = 1;
++            fprintf(stderr, "SWEETGL: OVERLAP on pid %d\n", (int)getpid());
++         }
++      }
++      __atomic_store_n(&mode, m, __ATOMIC_RELEASE);
++   }
++   return m;
++}
++
++static void
++sweet_ovl_sets_free(struct sweet_ovl_sets *s)
++{
++   free(s->all);
++   free(s->wr);
++   free(s->vt);
++   free(s->vtw);
++   *s = (struct sweet_ovl_sets){0};
++}
++
++static void
++sweet_ovl_prev_clear(void)
++{
++   free((void *)sweet_ovl_p.all);
++   free((void *)sweet_ovl_p.wr);
++   sweet_ovl_p = (struct sweet_ovl_prev){0};
++}
++
++/* The BO sets of a batch from batch->bos (indexed by GEM handle: ascending = sorted). The heap BO and the pool BOs are not in batch->bos, and stay out. false = out of memory. */
++static bool
++sweet_ovl_collect(struct panfrost_batch *batch, struct sweet_ovl_sets *s)
++{
++   pan_bo_access *flags = util_dynarray_begin(&batch->bos);
++   unsigned n = util_dynarray_num_elements(&batch->bos, pan_bo_access);
++
++   *s = (struct sweet_ovl_sets){0};
++   s->all = malloc((n + 1) * sizeof(uint32_t));
++   s->wr = malloc((n + 1) * sizeof(uint32_t));
++   s->vt = malloc((n + 1) * sizeof(uint32_t));
++   s->vtw = malloc((n + 1) * sizeof(uint32_t));
++   if (!s->all || !s->wr || !s->vt || !s->vtw) {
++      sweet_ovl_sets_free(s);
++      return false;
++   }
++   for (unsigned i = 0; i < n; i++) {
++      if (!flags[i])
++         continue;
++      s->all[s->n_all++] = i;
++      if (flags[i] & PAN_BO_ACCESS_WRITE)
++         s->wr[s->n_wr++] = i;
++      if (flags[i] & PAN_BO_ACCESS_VERTEX_TILER) {
++         s->vt[s->n_vt++] = i;
++         if (flags[i] & PAN_BO_ACCESS_WRITE)
++            s->vtw[s->n_vtw++] = i;
++      }
++   }
++   return true;
++}
++
++/* Under sweet_ovl_mu, before B's vertex/tiler submit. Counts the verdict. */
++static bool
++sweet_ovl_decide(struct panfrost_batch *batch, struct panfrost_device *dev, bool has_tiler, const struct sweet_ovl_sets *s)
++{
++   struct sweet_ovl_cur c = {
++      .dev = dev, .has_tiler = has_tiler, .half = batch->sweet_heap_half, .in_sync = batch->ctx->in_sync_fd >= 0,
++      .vt = s->vt, .n_vt = s->n_vt, .vtw = s->vtw, .n_vtw = s->n_vtw,
++   };
++   enum sweet_ovl_verdict v = sweet_ovl_check(&sweet_ovl_p, &c);
++
++   sweet_ovl_n[v]++;
++   if (sweet_ovl_checked++ == 0 || (sweet_ovl_checked & 4095) == 0)
++      fprintf(stderr,
++              "SWEETGL: OVERLAP checked %llu safe %llu no_prev_fs %llu half_same %llu half_unknown %llu r2 %llu r3 %llu insync %llu\n",
++              (unsigned long long)sweet_ovl_checked, (unsigned long long)sweet_ovl_n[SWEET_OVL_SAFE],
++              (unsigned long long)sweet_ovl_n[SWEET_OVL_NO_PREV_FS], (unsigned long long)sweet_ovl_n[SWEET_OVL_HALF_SAME],
++              (unsigned long long)sweet_ovl_n[SWEET_OVL_HALF_UNKNOWN], (unsigned long long)sweet_ovl_n[SWEET_OVL_R2],
++              (unsigned long long)sweet_ovl_n[SWEET_OVL_R3], (unsigned long long)sweet_ovl_n[SWEET_OVL_INSYNC]);
++   return v == SWEET_OVL_SAFE;
++}
++#endif
++
+ static int
+ jm_submit_jc(struct panfrost_batch *batch, uint64_t first_job_desc,
+              uint32_t reqs, uint32_t out_sync)
+@@ -207,6 +322,23 @@ GENX(jm_submit_batch)(struct panfrost_batch *batch)
+ 
+    unsigned reqs =
+       batch->need_job_req_cycle_count ? PANFROST_JD_REQ_CYCLE_COUNT : 0;
++   unsigned vreqs = reqs;
++#ifdef SWEET_OVL
++   struct sweet_ovl_sets ovl_sets = {0};
++   bool ovl_on = sweet_ovl_mode(dev) == 1;
++
++   if (ovl_on) {
++      /* The whole function, both submits, with or without a tiler: "the previous submit" is exact. The previous state is consumed here, so every
++       * error path leaves it invalid; only a successful FS submit below makes it valid again. */
++      pthread_mutex_lock(&sweet_ovl_mu);
++      if (!sweet_ovl_collect(batch, &ovl_sets)) {
++         fprintf(stderr, "SWEETGL: OVERLAP out of memory for the BO sets, this batch is not overlapped\n");
++      } else if (has_draws && !batch->ctx->is_noop && sweet_ovl_decide(batch, dev, has_tiler, &ovl_sets)) {   /* T-06ad review F2: a noop batch is never sent */
++         vreqs |= PANFROST_JD_REQ_SWEET_OVL;
++      }
++      sweet_ovl_prev_clear();
++   }
++#endif
+ 
+    /* Take the submit lock to make sure no tiler jobs from other context
+     * are inserted between our tiler and fragment jobs, failing to do that
+@@ -216,7 +348,7 @@ GENX(jm_submit_batch)(struct panfrost_batch *batch)
+       pthread_mutex_lock(&dev->submit_lock);
+ 
+    if (has_draws) {
+-      ret = jm_submit_jc(batch, batch->jm.jobs.vtc_jc.first_job, reqs,
++      ret = jm_submit_jc(batch, batch->jm.jobs.vtc_jc.first_job, vreqs,
+                          has_frag ? 0 : out_sync);
+ 
+       if (ret)
+@@ -228,9 +360,25 @@ GENX(jm_submit_batch)(struct panfrost_batch *batch)
+                          out_sync);
+       if (ret)
+          goto done;
++#ifdef SWEET_OVL
++      if (ovl_on && ovl_sets.all && !batch->ctx->is_noop) {   /* a noop FS submit reached no kernel: not a "previous FS" (T-06ad review F2) */
++         /* A successful FS submit: this batch's sets become the "previous" ones (ownership moves). */
++         sweet_ovl_p = (struct sweet_ovl_prev){
++            .dev = dev, .valid = true, .half = batch->sweet_heap_half,
++            .wr = ovl_sets.wr, .n_wr = ovl_sets.n_wr, .all = ovl_sets.all, .n_all = ovl_sets.n_all,
++         };
++         ovl_sets.wr = ovl_sets.all = NULL;
++      }
++#endif
+    }
+ 
+ done:
++#ifdef SWEET_OVL
++   if (ovl_on) {
++      sweet_ovl_sets_free(&ovl_sets);
++      pthread_mutex_unlock(&sweet_ovl_mu);
++   }
++#endif
+    if (has_tiler)
+       pthread_mutex_unlock(&dev->submit_lock);
+ 
+@@ -419,11 +567,11 @@ GENX(jm_launch_grid)(struct panfrost_batch *batch,
+  * Every tiler-carrying batch takes one of two halves of dev->tiler_heap, alternating (base/bottom/top of the TILER_HEAP descriptor and the size passed to the
+  * hierarchy-mask choice move to the half). The jobs still run one at a time in the SweetMali shim, so this only proves that a batch confined to its own
+  * half renders unchanged (precondition (i) of overlapping tiler(N+1) with FS(N), docs/reviews/T-791a-proof.md). Reads and writes no GPU state of its own. */
++/* T-34eb (patch 0008): the mode part of sweet_splitheap_half, split out so the overlap flag can ask whether the split heap is on. Read once per process. */
+ static int
+-sweet_splitheap_half(struct panfrost_bo *heap, uint64_t *half_size)
++sweet_splitheap_mode(struct panfrost_bo *heap)
+ {
+    static int mode = -1; /* -1 not read yet, 0 off, 1 on */
+-   static unsigned ctr, cnt[2];
+    int m = __atomic_load_n(&mode, __ATOMIC_ACQUIRE);
+ 
+    if (m < 0) {
+@@ -440,7 +588,15 @@ sweet_splitheap_half(struct panfrost_bo *heap, uint64_t *half_size)
+       }
+       __atomic_store_n(&mode, m, __ATOMIC_RELEASE);
+    }
+-   if (!m)
++   return m;
++}
++
++static int
++sweet_splitheap_half(struct panfrost_bo *heap, uint64_t *half_size)
++{
++   static unsigned ctr, cnt[2];
++
++   if (!sweet_splitheap_mode(heap))
+       return -1;
+ 
+    *half_size = panfrost_bo_size(heap) / 2;
+@@ -473,6 +629,7 @@ jm_emit_tiler_desc(struct panfrost_batch *batch)
+    {
+       uint64_t half_size = 0;
+       int half = sweet_splitheap_half(dev->tiler_heap, &half_size);
++      batch->sweet_heap_half = half;
+       if (half >= 0) {
+          heap_size = half_size;
+          heap_base += (uint64_t)half * half_size;
+diff --git a/src/gallium/drivers/panfrost/pan_job.c b/src/gallium/drivers/panfrost/pan_job.c
+index b031316..5e3fb14 100644
+--- a/src/gallium/drivers/panfrost/pan_job.c
++++ b/src/gallium/drivers/panfrost/pan_job.c
+@@ -72,6 +72,8 @@ panfrost_batch_init(struct panfrost_context *ctx,
+ 
+    batch->seqnum = ++ctx->batches.seqnum;
+ 
++   batch->sweet_heap_half = -1;
++
+    batch->bos = UTIL_DYNARRAY_INIT;
+ 
+    batch->minx = batch->miny = ~0;
+diff --git a/src/gallium/drivers/panfrost/pan_job.h b/src/gallium/drivers/panfrost/pan_job.h
+index 60a081d..7f7f4b6 100644
+--- a/src/gallium/drivers/panfrost/pan_job.h
++++ b/src/gallium/drivers/panfrost/pan_job.h
+@@ -64,6 +64,9 @@ struct panfrost_batch {
+    /* Acts as a rasterizer discard */
+    bool scissor_culls_everything;
+ 
++   /* SweetMali (T-34eb, patch 0008): the tiler heap half this batch picked (SWEETGL_SPLITHEAP), -1 when off or no tiler descriptor yet */
++   int sweet_heap_half;
++
+    /* BOs referenced not in the pool */
+    unsigned num_bos;
+    struct util_dynarray bos;
+diff --git a/src/gallium/drivers/panfrost/pan_sweet_ovl.h b/src/gallium/drivers/panfrost/pan_sweet_ovl.h
+new file mode 100644
+index 0000000..42a22ee
+--- /dev/null
++++ b/src/gallium/drivers/panfrost/pan_sweet_ovl.h
+@@ -0,0 +1,78 @@
++/* SweetMali overlap rule (T-34eb, patch 0008): may the vertex/tiler submit of batch B run beside the fragment job of the previous batch A?
++ * Pure functions over plain arrays (no Mesa types) so tools/sweetgl-mali/host-test.sh can include this file from the patched tree.
++ * Rule R0-R4: docs/reviews/T-34eb-proof.md section H1. A BO set is an array of GEM handles sorted ascending, without duplicates (batch->bos is indexed by
++ * handle, so walking it in order yields exactly that). */
++#ifndef PAN_SWEET_OVL_H
++#define PAN_SWEET_OVL_H
++
++#include <stdbool.h>
++#include <stdint.h>
++
++enum sweet_ovl_verdict {
++   SWEET_OVL_SAFE,
++   SWEET_OVL_NO_PREV_FS,   /* R0: the previous submit of this device was not a successful fragment submit (or another device) */
++   SWEET_OVL_HALF_SAME,    /* R1: B and A use the same tiler heap half */
++   SWEET_OVL_HALF_UNKNOWN, /* R1: B or A has no known heap half (split heap off, or no tiler descriptor) */
++   SWEET_OVL_R2,           /* B's vertex/compute stage accesses a BO the previous fragment batch writes */
++   SWEET_OVL_R3,           /* B's vertex/compute stage writes a BO the previous fragment batch accesses */
++   SWEET_OVL_INSYNC,       /* R4: B's submit has an in_sync */
++   SWEET_OVL_N
++};
++
++struct sweet_ovl_prev { /* the previous submit; valid only if it was a successful FS submit */
++   const void *dev;
++   bool valid;
++   int half;            /* its batch's heap half, -1 unknown */
++   const uint32_t *wr;  /* handles with PAN_BO_ACCESS_WRITE */
++   unsigned n_wr;
++   const uint32_t *all; /* handles with nonzero flags */
++   unsigned n_all;
++};
++
++struct sweet_ovl_cur { /* batch B at its vertex/tiler submit */
++   const void *dev;
++   bool has_tiler;
++   int half;
++   bool in_sync;         /* ctx->in_sync_fd >= 0 */
++   const uint32_t *vt;   /* handles with PAN_BO_ACCESS_VERTEX_TILER */
++   unsigned n_vt;
++   const uint32_t *vtw;  /* handles with both PAN_BO_ACCESS_WRITE and PAN_BO_ACCESS_VERTEX_TILER */
++   unsigned n_vtw;
++};
++
++static inline bool
++sweet_ovl_intersects(const uint32_t *a, unsigned na, const uint32_t *b, unsigned nb)
++{
++   unsigned i = 0, j = 0;
++   while (i < na && j < nb) {
++      if (a[i] == b[j])
++         return true;
++      if (a[i] < b[j])
++         i++;
++      else
++         j++;
++   }
++   return false;
++}
++
++static inline enum sweet_ovl_verdict
++sweet_ovl_check(const struct sweet_ovl_prev *p, const struct sweet_ovl_cur *c)
++{
++   if (!p->valid || p->dev != c->dev)
++      return SWEET_OVL_NO_PREV_FS;
++   if (c->has_tiler) {
++      if (c->half < 0 || p->half < 0)
++         return SWEET_OVL_HALF_UNKNOWN;
++      if (c->half == p->half)
++         return SWEET_OVL_HALF_SAME;
++   }
++   if (sweet_ovl_intersects(c->vt, c->n_vt, p->wr, p->n_wr))
++      return SWEET_OVL_R2;
++   if (sweet_ovl_intersects(c->vtw, c->n_vtw, p->all, p->n_all))
++      return SWEET_OVL_R3;
++   if (c->in_sync)
++      return SWEET_OVL_INSYNC;
++   return SWEET_OVL_SAFE;
++}
++
++#endif
+-- 
+2.47.3

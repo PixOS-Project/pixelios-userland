@@ -1,6 +1,6 @@
 # AI-driven development
 
-**PixeliOS is developed mostly by AI coding agents, directed by a human maintainer.** We say so
+**PixOS is developed mostly by AI coding agents, directed by a human maintainer.** We say so
 up front because it changes how you should read this repository.
 
 ## How the project is built
@@ -11,7 +11,7 @@ up front because it changes how you should read this repository.
   drafting tests).
 - **A human sets direction and holds the keys.** The maintainer chooses goals, owns the phone, and
   reads the results. Agents run the host tools and, through scripted tools only (`tools/xrun`,
-  `tools/fboot.sh`, `tools/phone`), boot images with `fastboot boot`, which writes nothing; flashing the
+  `tools/fboot.sh`, `tools/phone`, all under the one phone lock `tools/phone-lock`, in pixelios-kernel), boot images with `fastboot boot`, which writes nothing; flashing the
   `userdata` partition with the iOS root is pre-approved by the maintainer. Anything else that writes
   to a phone (any other partition, relocking the bootloader, switching boot slots) needs the maintainer's
   explicit confirmation, and so does publishing; see [Safety](https://github.com/PixOS-Project/pixelios-kernel/blob/main/docs/SAFETY.md). Some work is done by agents
@@ -22,10 +22,12 @@ up front because it changes how you should read this repository.
   a second opinion, not a proof.
 - **Hardware is the judge.** Nothing is called working until it was observed on a real Pixel 6a.
   [Status](https://github.com/PixOS-Project/pixelios-site/blob/main/docs/STATUS.md) separates what was observed on the device from what only builds or is guessed.
-- **Automatic checks.** Host tests, a build-time audit that rejects any storage write path in
-  pre-kernel code (`tools/test-bluejay-boot.py`), and a check that the published repositories rebuild the
-  private working tree (scan for private data, reconstruction, no dangling links).
-- **Attribution.** Commits made by an agent end with a `Co-Authored-By:` trailer naming the model.
+- **Automatic checks.** Host tests (here: `tools/test_*.py`), and in pixelios-kernel a build-time audit that rejects any
+  storage write path in pre-kernel code (`tools/test-bluejay-boot.py`) and a README gate (links, paths, undated "works"
+  claims, private-data patterns). (The public trees were once generated from a private monorepo and checked against it;
+  each repository is now its own source of truth.)
+- **Attribution.** Commits made by an agent end with a `Co-Authored-By:` trailer naming the model; newer commits also carry
+  a `PixOS-Worker:` trailer naming the agent role.
 
 ## What that means for you
 

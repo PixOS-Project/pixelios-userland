@@ -1,0 +1,137 @@
+From 8e4c086f66fc34d3fd50837075c64760bb002514 Mon Sep 17 00:00:00 2001
+From: TheSmuks <60717893+TheSmuks@users.noreply.github.com>
+Date: Fri, 23 Oct 2026 14:22:25 +0200
+Subject: [PATCH 3/4] panfrost/kmod: compile panfrost_kmod.c on Darwin
+
+* <sys/eventfd.h> and <sys/timerfd.h> (panfrost_kmod.c:12-13) do not exist
+  on Darwin. The perf session code that needs them (eventfd, timerfd,
+  sched_setscheduler(SCHED_FIFO)) is compiled out under __APPLE__ and
+  panfrost_kmod_perf_create() returns NULL; the other perf ops stay NULL.
+* DRM_IOCTL_PANFROST_WAIT_BO takes an absolute os_time_get_nano() deadline
+  on Linux. Under __APPLE__ the kmod converts it to a relative timeout
+  (new darwin_drm.h: darwin_drm_abs_timeout_to_rel_ns), so the user client
+  does not depend on which clock os_time_get_nano() reads on Darwin.
+
+Not built or run (no Mac/Apple SDK here).
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+---
+ src/panfrost/darwin_drm/darwin_drm.h  | 37 +++++++++++++++++++++++++++
+ src/panfrost/lib/kmod/panfrost_kmod.c | 24 +++++++++++++++++
+ 2 files changed, 61 insertions(+)
+ create mode 100644 src/panfrost/darwin_drm/darwin_drm.h
+
+diff --git a/src/panfrost/darwin_drm/darwin_drm.h b/src/panfrost/darwin_drm/darwin_drm.h
+new file mode 100644
+index 0000000..6209093
+--- /dev/null
++++ b/src/panfrost/darwin_drm/darwin_drm.h
+@@ -0,0 +1,37 @@
++/*
++ * SPDX-License-Identifier: MIT
++ *
++ * Mesa-side hook points for the Darwin/iOS panfrost port (see README.md in
++ * this directory). Only used when __APPLE__ is defined.
++ */
++#ifndef DARWIN_DRM_H
++#define DARWIN_DRM_H
++
++#include <stdint.h>
++
++#include "util/os_time.h"
++
++/*
++ * Mesa computes "absolute" timeouts with os_time_get_nano() (this is what
++ * DRM_IOCTL_PANFROST_WAIT_BO and drmSyncobjWait take on Linux). Converting to
++ * a relative timeout on the Mesa side means the user client never has to
++ * know which clock os_time_get_nano() reads on Darwin.
++ *
++ * INT64_MAX (what pan_bo.c / pan_jm.c pass for "forever") stays INT64_MAX;
++ * a deadline in the past becomes 0 (poll).
++ *
++ * The fake drmSyncobjWait()/drmSyncobjTimelineWait() in the embedding dylib
++ * should call this too: Mesa passes an absolute os_time_get_nano() value
++ * there (pan_fence.c:44-48).
++ */
++static inline int64_t
++darwin_drm_abs_timeout_to_rel_ns(int64_t abs_timeout_ns)
++{
++   if (abs_timeout_ns == INT64_MAX)
++      return INT64_MAX;
++
++   int64_t now = os_time_get_nano();
++   return abs_timeout_ns > now ? abs_timeout_ns - now : 0;
++}
++
++#endif /* DARWIN_DRM_H */
+diff --git a/src/panfrost/lib/kmod/panfrost_kmod.c b/src/panfrost/lib/kmod/panfrost_kmod.c
+index 2a33283..9eb99e1 100644
+--- a/src/panfrost/lib/kmod/panfrost_kmod.c
++++ b/src/panfrost/lib/kmod/panfrost_kmod.c
+@@ -9,8 +9,14 @@
+ #include <pthread.h>
+ #include <string.h>
+ #include <xf86drm.h>
++#ifdef __APPLE__
++/* No eventfd/timerfd/SCHED_FIFO on Darwin: the perf session code is compiled
++ * out below. */
++#include "darwin_drm.h"
++#else
+ #include <sys/eventfd.h>
+ #include <sys/timerfd.h>
++#endif
+ 
+ #include "util/hash_table.h"
+ #include "util/macros.h"
+@@ -431,7 +437,13 @@ panfrost_kmod_bo_wait(struct pan_kmod_bo *bo, int64_t timeout_ns,
+ {
+    struct drm_panfrost_wait_bo req = {
+       .handle = bo->handle,
++#ifdef __APPLE__
++      /* Linux: absolute CLOCK_MONOTONIC ns. Darwin: RELATIVE ns (see
++       * darwin_drm.h), so the user client needs no matching clock. */
++      .timeout_ns = darwin_drm_abs_timeout_to_rel_ns(timeout_ns),
++#else
+       .timeout_ns = timeout_ns,
++#endif
+    };
+ 
+    /* The ioctl returns >= 0 value when the BO we are waiting for is ready
+@@ -654,6 +666,7 @@ panfrost_kmod_bo_label(struct pan_kmod_dev *dev, struct pan_kmod_bo *bo, const c
+       mesa_loge("DRM_IOCTL_PANFROST_SET_LABEL_BO failed (err=%d)", errno);
+ }
+ 
++#ifndef __APPLE__
+ static uint32_t
+ panthor_kmod_perf_hw_sample_size(struct pan_kmod_dev *dev)
+ {
+@@ -966,6 +979,15 @@ panfrost_kmod_perf_dump(struct pan_kmod_perf_session *session,
+    pthread_mutex_unlock(&panfrost_session->lock);
+ }
+ 
++#else /* __APPLE__ */
++/* Perf sessions need eventfd/timerfd/SCHED_FIFO: report "not available". */
++static struct pan_kmod_perf_session *
++panfrost_kmod_perf_create(struct pan_kmod_dev *dev)
++{
++   return NULL;
++}
++#endif /* __APPLE__ */
++
+ const struct pan_kmod_ops panfrost_kmod_ops = {
+    .dev_create = panfrost_kmod_dev_create,
+    .dev_destroy = panfrost_kmod_dev_destroy,
+@@ -984,8 +1006,10 @@ const struct pan_kmod_ops panfrost_kmod_ops = {
+    .query_timestamp = panfrost_kmod_query_timestamp,
+    .bo_set_label = panfrost_kmod_bo_label,
+    .perf_create = panfrost_kmod_perf_create,
++#ifndef __APPLE__
+    .perf_destroy = panfrost_kmod_perf_destroy,
+    .perf_enable = panfrost_kmod_perf_enable,
+    .perf_disable = panfrost_kmod_perf_disable,
+    .perf_dump = panfrost_kmod_perf_dump,
++#endif
+ };
+-- 
+2.47.3
+

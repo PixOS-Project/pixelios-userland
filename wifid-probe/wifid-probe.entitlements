@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Entitlements wifid-probe is signed with: wifid's own keychain rights on iOS 16.7 (X-W5 s.3, read from the wifid
+     entitlements of our root). The kernel grants what the XML blob says (xnu patch 0035, platform binary on the root
+     volume, 0036); a DER-only signature gets none. keychain-cloud-circle and the SCDynamicStore/SCPreferences write
+     entitlements of wifid are left out on purpose: the probe only reads the store and uses no cloud keychain. -->
+<plist version="1.0">
+<dict>
+	<key>application-identifier</key>
+	<string>com.apple.wifid</string>
+	<key>com.apple.private.system-keychain</key>
+	<true/>
+	<key>keychain-access-groups</key>
+	<array>
+		<string>apple</string>
+		<string>com.apple.identities</string>
+		<string>com.apple.certificates</string>
+		<string>wifianalyticsd</string>
+		<string>com.apple.coreservices.appleidauthentication</string>
+		<string>com.apple.coreservices.appleidauthentication.keychainaccessgroup</string>
+		<string>com.apple.sharing.appleidauthentication</string>
+	</array>
+</dict>
+</plist>

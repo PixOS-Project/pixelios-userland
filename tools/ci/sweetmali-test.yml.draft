@@ -1,0 +1,15 @@
+# A private CI repository (macOS runner; Apple SDK never stored). Observed 2026-10-23: builds, Mach-O arm64. Copy to .github/workflows/ there.
+name: sweetmali-test
+on:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build sweetmali-test (iphoneos arm64, ad-hoc signed)
+        run: tools/sweetmali-test/build.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sweetmali-test
+          path: tools/sweetmali-test/out/sweetmali-test

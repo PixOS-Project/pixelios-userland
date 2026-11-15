@@ -1,6 +1,6 @@
-# PixeliOS: iOS userland
+# PixOS: iOS userland
 
-The recipe that builds the **iOS 16.7 root filesystem** for the PixeliOS port (Apple XNU and iOS on a Google Pixel 6a,
+The recipe that builds the **iOS 16.7 root filesystem** for the PixOS port (Apple XNU and iOS on a Google Pixel 6a,
 Tensor G1). The root is flashed to the phone's `userdata` partition and mounted by the patched kernel.
 
 > **AI-driven development.** This project is written mostly by AI coding agents under the direction of a human maintainer, who owns the phone
@@ -9,9 +9,17 @@ Tensor G1). The root is flashed to the phone's `userdata` partition and mounted 
 This repository holds scripts only. **No Apple binaries are distributed**: the IPSW restore image is downloaded on your
 own machine and the root is assembled from it there.
 
-Status (*observed on hardware*, 2026-10-22): the root built with this recipe boots to launchd, the lock screen and the home screen
-on a Pixel 6a; touch works, the UI is slow, and Wi-Fi, GPU, audio, camera and modem are not done. Details are in
-[pixelios-site](https://github.com/PixOS-Project/pixelios-site) (`docs/STATUS.md`).
+Status 2026-11-15 (*observed on hardware* in the maintainers' runs, run labels on [STATUS.md on pixelios-site](https://github.com/PixOS-Project/pixelios-site/blob/main/docs/STATUS.md)):
+the root built with this recipe, together with the kernel repository's shim and XNU patches, boots to launchd, the lock screen and the
+home screen on a Pixel 6a. Now working: GPU acceleration, Wi-Fi with real internet, Bluetooth, and touch. GPU: smooth UI at about 50 fps
+with the GPU at its lowest clock (150 MHz), rendered 50.6 / 50.6 pooled on two boots (runs 155b, 8177); drawn presents reaching the panel
+49.0/s (run 18e1), so the 50/s bar is not met yet. Wi-Fi: joins WPA2 networks and gets real internet (DNS, HTTPS; pixnet 9/9), about
+190-285 Mbit/s download (155b, 8177). Bluetooth: pairs and connects devices, tested with a headset (demo boot, job 1308). Touch: a real
+finger works (same boot). **No audio playback yet.** Known issues: UDP download loses packets under heavy load; the iOS daemon `lskdd`
+exits and restarts about once a second. This configuration runs 5 of the 8 CPU cores; a boot needs the PixOS shim and the `userdata` root
+built here. Release note: [2026-11-15](https://github.com/PixOS-Project/pixelios-site/blob/main/docs/RELEASE-2026-11-15.md); kernel side:
+[pixelios-kernel README](https://github.com/PixOS-Project/pixelios-kernel).
+Disclaimer: AI was used heavily to make this run on Pixel 6a; it is based on ios-sweet.
 
 - `tools/build-ios-root.sh`, `tools/build-ios-root-rootless.sh`: build the root (the rootless variant needs no sudo,
   see `docs/ROOTLESS_BUILD.md`)

@@ -1,0 +1,40 @@
+From a525bb588b8dd7705b152956d158d8b78027e248 Mon Sep 17 00:00:00 2001
+From: TheSmuks <60717893+TheSmuks@users.noreply.github.com>
+Date: Fri, 23 Oct 2026 14:19:57 +0200
+Subject: [PATCH 1/4] panfrost/model: add Mali-G78 (PAN_PROD_ID(9, 2, 2))
+
+GPU_ID 0x92020010 decodes with PAN_ARCH_MAJOR/MINOR and PAN_PRODUCT_MAJOR
+(pan_model.h:25-28) to arch 9, minor 2, product major 2, so
+pan_prod_id() == PAN_PROD_ID(9, 2, 2). The table had no such row, so
+pan_get_model() returned NULL and panfrost_open_device() refused the GPU
+(pan_device.c:43-48).
+
+[guess] The tilebuffer sizes and the rates are a copy of the G57 (9,0,3)
+row; the real G78 values are not verified. The counter set name "G78"
+is the one already listed in perf/mali_perf.h.
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+---
+ src/panfrost/model/pan_model.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/src/panfrost/model/pan_model.c b/src/panfrost/model/pan_model.c
+index 22fb4f7..5dfc60d 100644
+--- a/src/panfrost/model/pan_model.c
++++ b/src/panfrost/model/pan_model.c
+@@ -85,6 +85,12 @@ const struct pan_model pan_model_list[] = {
+                                               MODEL_RATES_X(2, 4, 8,  32,  32, 8)),
+    VALHALL_MODEL(PAN_PROD_ID(9, 0, 3), 0, "G57",    "G77", MODEL_ANISO(ALL),  MODEL_TB_SIZES(16384,  8192),
+                                               MODEL_RATES_X(2, 4, 8,  32,  32, 8)),
++   /* Mali-G78 (GPU_ID 0x92020010: arch 9.2, product major 2). [guess] The
++    * tilebuffer sizes and rates are a copy of the G57 row above, not taken
++    * from an Arm source: TODO(verify) before upstreaming.
++    */
++   VALHALL_MODEL(PAN_PROD_ID(9, 2, 2), 0, "G78",    "G78", MODEL_ANISO(ALL),  MODEL_TB_SIZES(16384,  8192),
++                                              MODEL_RATES_X(2, 4, 8,  32,  32, 8)),
+    VALHALL_MODEL(PAN_PROD_ID(10, 8, 7), 0, "G610",   "G710", MODEL_ANISO(ALL),  MODEL_TB_SIZES(32768, 16384),
+                                               MODEL_RATES_X(4, 8, 16,  64,  64, 16)),
+    /* var/cvt/sfu rates might not be correct (we haven't found any detailed documentation) */
+-- 
+2.47.3
+

@@ -101,7 +101,7 @@ apfs_mount "$sysos" sysos
 apfs_mount "$appos" appos
 
 truncate -s "$size" "$out"
-mkfs.hfsplus -s -J -v iOSRoot "$out"
+mkfs.hfsplus -s -J -n c=4096,a=4096 -v iOSRoot "$out"
 mkdir "$work/root"
 sudo mount -t hfsplus -o loop,force "$out" "$work/root"
 mounts=("$work/root" "${mounts[@]}")

@@ -1,0 +1,348 @@
+#
+# Builds Mesa Panfrost (gallium, GLES only) for iOS 16 arm64 on a GitHub macos-14 runner:
+#   stage 1  host tools (mesa_clc, vtn_bindgen2, panfrost_compile) for macOS arm64, needs LLVM + SPIRV-LLVM-Translator
+#   stage 2  iOS cross build with `xcrun -sdk iphoneos`, no LLVM at runtime, static libs
+#   stage 3/4  link test executables (DRM emulation, EAGL core + Mesa backend)
+#   stage 5  libsweetgl.dylib (EAGL shim + DRM emulation + Mesa), ad-hoc codesign, checks (INJECT.md)
+# The iPhoneOS SDK comes with the runner's Xcode (same trick as the kernel workflow). Nothing is downloaded
+# except Mesa source (checked against a sha256) and brew/pip packages. No secrets are used.
+name: mesa-panfrost-ios
+
+on:
+  workflow_dispatch:
+    inputs:
+      mesa_version:
+        description: Mesa release tarball to build (the plan pins 26.2.5)
+        default: "26.2.5"
+      mesa_sha256:
+        description: sha256 of mesa-VERSION.tar.xz (REQUIRED, fill in from archive.mesa3d.org .sha256sum before the first real run)
+        default: "794b3d1729075dae7ebd47c7283b7ca0cdb5dec668f7f11cc0a5d82f6138a0a5"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mesa-panfrost-ios-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  MESA_VERSION: ${{ inputs.mesa_version || '26.2.5' }}
+  MESA_SHA256: ${{ inputs.mesa_sha256 }}
+  IOS_MIN: "16.0"
+
+jobs:
+  mesa-panfrost-ios:
+    # macos-14 = Apple silicon runner with Xcode 15 (same pin as xnu.yml); the oldest preinstalled Xcode is used
+    runs-on: macos-14
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode and check the iPhoneOS SDK
+        run: |
+          XC=$(ls -d /Applications/Xcode_*.app | sort -V | head -1)
+          echo "DEVELOPER_DIR=$XC/Contents/Developer" >> "$GITHUB_ENV"
+          sudo xcode-select -s "$XC"
+          xcodebuild -version
+          xcrun -sdk iphoneos --show-sdk-path
+          xcrun -sdk iphoneos --find clang
+
+      - name: Install host tools
+        run: |
+          # llvm + spirv-llvm-translator: mesa_clc (stage 1 only). bison/flex: GLSL parser. spirv-tools: >= 2024.1.
+          brew install meson ninja bison flex llvm spirv-llvm-translator spirv-tools pkgconf
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install --quiet mako pyyaml packaging
+          {
+            echo "$RUNNER_TEMP/venv/bin"
+            echo "$(brew --prefix bison)/bin"
+            echo "$(brew --prefix flex)/bin"
+            echo "$(brew --prefix llvm)/bin"
+          } >> "$GITHUB_PATH"
+          echo "PKG_CONFIG_PATH=$(brew --prefix spirv-llvm-translator)/lib/pkgconfig:$(brew --prefix spirv-tools)/lib/pkgconfig:$(brew --prefix llvm)/lib/pkgconfig" >> "$GITHUB_ENV"
+
+      - name: Check the LLVM / SPIRV-LLVM-Translator pairing
+        run: |
+          # Mesa wants LLVMSPIRVLib >= LLVM major.minor and < major.(minor+1) (meson.build:2074-2081 in 26.2.5)
+          LLVMV=$(llvm-config --version)
+          SPV=$(pkg-config --modversion LLVMSPIRVLib)
+          echo "llvm $LLVMV, LLVMSPIRVLib $SPV, spirv-tools $(pkg-config --modversion SPIRV-Tools)"
+          [ "$(echo "$LLVMV" | cut -d. -f1,2)" = "$(echo "$SPV" | cut -d. -f1,2)" ] || { echo "LLVM and SPIRV-LLVM-Translator disagree"; exit 1; }
+          meson --version
+          bison --version | head -1
+          flex --version
+
+      - name: Fetch and verify Mesa
+        run: |
+          test -n "$MESA_SHA256" || { echo "mesa_sha256 input is required"; exit 1; }
+          mkdir -p "$RUNNER_TEMP/src"
+          curl -fsSL -o "$RUNNER_TEMP/mesa.tar.xz" "https://archive.mesa3d.org/mesa-$MESA_VERSION.tar.xz"
+          echo "$MESA_SHA256  $RUNNER_TEMP/mesa.tar.xz" | shasum -a 256 -c -
+          tar -xJf "$RUNNER_TEMP/mesa.tar.xz" -C "$RUNNER_TEMP/src"
+          echo "MESA=$RUNNER_TEMP/src/mesa-$MESA_VERSION" >> "$GITHUB_ENV"
+
+      - name: Apply our Mesa patches (placeholder)
+        run: |
+          # Planned set (doc 32, section 5): darwin-drm shim include dir + meson gating, os_mmap/os_munmap redirect,
+          # eventfd/timerfd guard in panfrost_kmod.c, G78 row in pan_model.c. Patches live in tools/mesa-patches/ of this repo (applied, darwin-drm shim included).
+          shopt -s nullglob
+          patches=(tools/mesa-patches/*.patch)
+          if [ ${#patches[@]} -eq 0 ]; then echo "NO PATCHES YET: the build below is expected to fail on xf86drm.h"; fi
+          for p in "${patches[@]}"; do patch -d "$MESA" -p1 --no-backup-if-mismatch < "$p"; done
+
+      - name: Stage 1, host tools (macOS arm64)
+        run: |
+          # Same command as docs/drivers/panfrost.rst "Building" in Mesa, plus the switches that keep X/EGL/GL out.
+          meson setup "$RUNNER_TEMP/build-host" "$MESA" \
+          -Ddarwin-drm=true \
+            --prefix "$RUNNER_TEMP/host-tools" --buildtype=release -Db_ndebug=true \
+            -Dtools=panfrost -Dmesa-clc=enabled -Dinstall-mesa-clc=true \
+            -Dprecomp-compiler=enabled -Dinstall-precomp-compiler=true \
+            -Dllvm=enabled -Dgallium-drivers= -Dvulkan-drivers= -Dplatforms= \
+            -Dglx=disabled -Degl=disabled -Dgbm=disabled -Dopengl=false -Dgles1=disabled -Dgles2=disabled \
+            -Dzstd=disabled -Dexpat=disabled -Dxmlconfig=disabled -Dshader-cache=disabled \
+            -Dvalgrind=disabled -Dlibunwind=disabled -Dlmsensors=disabled -Dbuild-tests=false \
+            -Dpanfrost-rust=false --wrap-mode=nofallback
+          # only the three tools: -Dtools=panfrost also wants drmOpenWithType (texfeatures) and endian.h (panfrostdump), which do not build on macOS
+          B="$RUNNER_TEMP/build-host"
+          ninja -C "$B" src/compiler/clc/mesa_clc src/compiler/spirv/vtn_bindgen2 src/panfrost/clc/panfrost_compile
+          mkdir -p "$RUNNER_TEMP/host-tools/bin"
+          cp "$B/src/compiler/clc/mesa_clc" "$B/src/compiler/spirv/vtn_bindgen2" "$B/src/panfrost/clc/panfrost_compile" "$RUNNER_TEMP/host-tools/bin/"
+          ls -l "$RUNNER_TEMP/host-tools/bin"
+          for t in mesa_clc vtn_bindgen2 panfrost_compile; do test -x "$RUNNER_TEMP/host-tools/bin/$t" || { echo "missing host tool $t"; exit 1; }; done
+
+      - name: Stage 2, cross-build Mesa for iOS arm64
+        run: |
+          SDK=$(xcrun -sdk iphoneos --show-sdk-path)
+          CLANG=$(xcrun -sdk iphoneos --find clang)
+          CLANGXX=$(xcrun -sdk iphoneos --find clang++)
+          FLAGS="'-target', 'arm64-apple-ios$IOS_MIN', '-isysroot', '$SDK'"
+          cat > "$RUNNER_TEMP/ios.cross" <<INI
+          [binaries]
+          c = '$CLANG'
+          cpp = '$CLANGXX'
+          objc = '$CLANG'
+          ar = '$(xcrun -sdk iphoneos --find ar)'
+          strip = '$(xcrun -sdk iphoneos --find strip)'
+          pkg-config = 'false'
+          [built-in options]
+          c_args = [$FLAGS]
+          cpp_args = [$FLAGS]
+          objc_args = [$FLAGS]
+          c_link_args = [$FLAGS]
+          cpp_link_args = [$FLAGS]
+          objc_link_args = [$FLAGS]
+          [host_machine]
+          system = 'darwin'
+          subsystem = 'ios'
+          cpu_family = 'aarch64'
+          cpu = 'arm64'
+          endian = 'little'
+          [properties]
+          needs_exe_wrapper = true
+          INI
+          cat > "$RUNNER_TEMP/host-tools.native" <<INI
+          [binaries]
+          mesa_clc = '$RUNNER_TEMP/host-tools/bin/mesa_clc'
+          vtn_bindgen2 = '$RUNNER_TEMP/host-tools/bin/vtn_bindgen2'
+          panfrost_compile = '$RUNNER_TEMP/host-tools/bin/panfrost_compile'
+          INI
+          export CC="$CLANG" CXX="$CLANGXX"
+          unset CFLAGS CXXFLAGS CPPFLAGS LDFLAGS
+          meson setup "$RUNNER_TEMP/build-ios" "$MESA" \
+          -Ddarwin-drm=true \
+            --cross-file "$RUNNER_TEMP/ios.cross" --native-file "$RUNNER_TEMP/host-tools.native" \
+            --wrap-mode=nofallback --buildtype=release -Db_ndebug=true -Ddefault_library=static \
+            -Dplatforms= -Degl=disabled -Dglx=disabled -Dgbm=disabled \
+            -Dgallium-drivers=panfrost -Dvulkan-drivers= -Dllvm=disabled \
+            -Dmesa-clc=system -Dprecomp-compiler=system -Dpanfrost-rust=false \
+            -Dopengl=true -Dgles1=disabled -Dgles2=enabled -Dshared-glapi=disabled \
+            -Dzstd=disabled -Dzlib=disabled -Dexpat=disabled -Dxmlconfig=disabled -Dshader-cache=disabled \
+            -Dvalgrind=disabled -Dlibunwind=disabled -Dlmsensors=disabled -Dperfetto=false \
+            -Dbuild-tests=false -Dgallium-rusticl=false -Dtools= -Dteflon=false \
+            -Dgallium-va=disabled -Dvideo-codecs= -Dhtml-docs=disabled -Ddisplay-info=disabled
+          # static_library() targets are not built by default: ask ninja for every .a
+          LIBS=$(ninja -C "$RUNNER_TEMP/build-ios" -t targets all | sed -n 's/^\(src\/.*\.a\): .*/\1/p')
+          # libloader / pipe_loader_drm are device-probing helpers for the dri/va/lavapipe targets, we create the screen directly (needs real libdrm device enumeration): allowed to fail.
+          ninja -k 0 -C "$RUNNER_TEMP/build-ios" $LIBS 2>&1 | tee "$RUNNER_TEMP/ninja.log" || true
+          BAD=$(grep '^FAILED:' "$RUNNER_TEMP/ninja.log" | grep -vE 'libloader\.a|libpipe_loader_static\.a|pipe_loader' || true)
+          test -z "$BAD" || { echo "unexpected failures:"; echo "$BAD"; exit 1; }
+
+      - name: Collect static libs and check they are iOS arm64
+        run: |
+          mkdir -p out/libs
+          # macOS cp has no --parents: use cpio (preinstalled)
+          (cd "$RUNNER_TEMP/build-ios" && find src -name '*.a' | cpio -pdm "$GITHUB_WORKSPACE/out/libs/")
+          f=$(find out/libs -name 'libpanfrost.a' | head -1)
+          test -n "$f" || { echo "libpanfrost.a missing"; exit 1; }
+          lipo -info "$f"
+          # the platform load command must say iOS (2), not macOS (1)
+          o=$(mktemp -d); (cd "$o" && ar -x "$GITHUB_WORKSPACE/$f" && vtool -show-build "$(ls *.o | head -1)")
+
+      - name: Stage 3, link sweetgl-clear-test (iOS arm64 executable) and ad-hoc codesign
+        run: |
+          B="$RUNNER_TEMP/build-ios"
+          SDK=$(xcrun -sdk iphoneos --show-sdk-path)
+          MAC=$(xcrun -sdk macosx --show-sdk-path)
+          # reuse the exact compile flags meson used for pan_screen.c (defines, generated-header include dirs)
+          python3 - "$B" > "$RUNNER_TEMP/cflags.txt" <<'PY'
+          import json, shlex, sys
+          b = sys.argv[1]
+          for e in json.load(open(b + "/compile_commands.json")):
+              if e["file"].endswith("src/gallium/drivers/panfrost/pan_screen.c"):
+                  a = shlex.split(e.get("command") or " ".join(e["arguments"]))[1:]
+                  out, skip = [], False
+                  for x in a:
+                      if skip: skip = False; continue
+                      if x in ("-o", "-MF", "-MQ", "-MT"): skip = True; continue
+                      if x in ("-c", "-MD") or x == e["file"] or x.endswith("pan_screen.c"): continue
+                      out.append(x)
+                  print("\n".join(out)); break
+          PY
+          CF=(); while IFS= read -r l; do CF+=("$l"); done < "$RUNNER_TEMP/cflags.txt"
+          mkdir -p out/sweetgl
+          # cwd must be the build dir: meson include paths are relative to it
+          (cd "$B" && for f in sweet_drm_mali gl_clear_test; do
+            xcrun -sdk iphoneos clang -arch arm64 -miphoneos-version-min=$IOS_MIN "${CF[@]}" \
+              -Wno-unused-parameter -isystem "$MAC/System/Library/Frameworks/IOKit.framework/Headers" \
+              -I"$GITHUB_WORKSPACE/tools/sweetgl-mali" -I"$MESA/include" -I"$MESA/src/panfrost/darwin_drm" -I"$MESA/src/gallium/drivers" \
+              -c "$GITHUB_WORKSPACE/tools/sweetgl-mali/$f.c" -o "$GITHUB_WORKSPACE/out/sweetgl/$f.o"
+          done)
+          LIBS=$(find out/libs -name '*.a' | sort)
+          xcrun -sdk iphoneos clang++ -arch arm64 -miphoneos-version-min=$IOS_MIN -isysroot "$SDK" \
+            out/sweetgl/sweet_drm_mali.o out/sweetgl/gl_clear_test.o $LIBS \
+            -framework IOKit -framework CoreFoundation -lc++ -o out/sweetgl/sweetgl-clear-test 2>&1 | tee "$RUNNER_TEMP/link.log"
+          test -x out/sweetgl/sweetgl-clear-test
+          codesign -f -s - out/sweetgl/sweetgl-clear-test
+          file out/sweetgl/sweetgl-clear-test
+          vtool -show-build out/sweetgl/sweetgl-clear-test
+          echo 'DRMSYMS:'; nm -m out/sweetgl/sweetgl-clear-test | grep -E '_drm(Ioctl|GetVersion|GetCap)|_darwin_drm_bo_map' | sed 's/^/DRMSYMS /'
+          rm out/sweetgl/*.o
+
+      - name: Stage 4, link sweetgl-eagl-link-test (EAGL core + Mesa backend, iOS arm64) and ad-hoc codesign
+        run: |
+          B="$RUNNER_TEMP/build-ios"
+          SDK=$(xcrun -sdk iphoneos --show-sdk-path)
+          MAC=$(xcrun -sdk macosx --show-sdk-path)
+          # flags of a state-tracker file: they carry the include dirs for mesa/main/mtypes.h & friends (generated headers too)
+          python3 - "$B" > "$RUNNER_TEMP/cflags-st.txt" <<'PY'
+          import json, shlex, sys
+          b = sys.argv[1]
+          for e in json.load(open(b + "/compile_commands.json")):
+              if e["file"].endswith("src/mesa/state_tracker/st_context.c"):
+                  a = shlex.split(e.get("command") or " ".join(e["arguments"]))[1:]
+                  out, skip = [], False
+                  for x in a:
+                      if skip: skip = False; continue
+                      if x in ("-o", "-MF", "-MQ", "-MT"): skip = True; continue
+                      if x in ("-c", "-MD") or x == e["file"] or x.endswith("st_context.c"): continue
+                      out.append(x)
+                  print("\n".join(out)); break
+          PY
+          CF=(); while IFS= read -r l; do CF+=("$l"); done < "$RUNNER_TEMP/cflags-st.txt"
+          test ${#CF[@]} -gt 0
+          mkdir -p out/eagl
+          E="$GITHUB_WORKSPACE/tools/sweetgl-eagl"
+          (cd "$B" && for f in "sweetgl-mali/sweet_drm_mali" "sweetgl-eagl/eagl_core" "sweetgl-eagl/eagl_mesa" "sweetgl-eagl/eagl_mesa_link_test"; do
+            xcrun -sdk iphoneos clang -arch arm64 -miphoneos-version-min=$IOS_MIN "${CF[@]}" \
+              -Wno-unused-parameter -isystem "$MAC/System/Library/Frameworks/IOKit.framework/Headers" \
+              -I"$E" -I"$GITHUB_WORKSPACE/tools/sweetgl-mali" -I"$MESA/include" -I"$MESA/src/panfrost/darwin_drm" -I"$MESA/src/gallium/drivers" \
+              -I"$MESA/src/mesa" -I"$MESA/src" \
+              -c "$GITHUB_WORKSPACE/tools/$f.c" -o "$GITHUB_WORKSPACE/out/eagl/$(basename $f).o"
+          done)
+          LIBS=$(find out/libs -name '*.a' | sort)
+          xcrun -sdk iphoneos clang++ -arch arm64 -miphoneos-version-min=$IOS_MIN -isysroot "$SDK" \
+            out/eagl/*.o $LIBS \
+            -framework IOKit -framework CoreFoundation -lc++ -o out/eagl/sweetgl-eagl-link-test 2>&1 | tee "$RUNNER_TEMP/link-eagl.log"
+          test -x out/eagl/sweetgl-eagl-link-test
+          codesign -f -s - out/eagl/sweetgl-eagl-link-test
+          file out/eagl/sweetgl-eagl-link-test
+          vtool -show-build out/eagl/sweetgl-eagl-link-test
+          # the Mesa state tracker and panfrost must really be inside the binary (ld succeeded, so nothing is undefined)
+          for sym in _st_api_create_context _st_finish _panfrost_drm_screen_create __mesa_EGLImageTargetTexture2DOES _sgl_context_create _sweet_drm_mali_open _sweet_gl_kernel_import; do
+            nm out/eagl/sweetgl-eagl-link-test | grep -q " [Tt] $sym\$" || { echo "missing defined symbol $sym"; exit 1; }
+          done
+          echo "EAGLSYMS ok"; nm -u out/eagl/sweetgl-eagl-link-test | wc -l | sed 's/^/EAGLUNDEF-dylib-imports /'
+          rm out/eagl/*.o
+
+      - name: Stage 5, link libsweetgl.dylib (EAGL shim + DRM emulation + Mesa panfrost, iOS arm64), ad-hoc codesign, verify
+        run: |
+          B="$RUNNER_TEMP/build-ios"
+          SDK=$(xcrun -sdk iphoneos --show-sdk-path)
+          MAC=$(xcrun -sdk macosx --show-sdk-path)
+          E="$GITHUB_WORKSPACE/tools/sweetgl-eagl"
+          M="$GITHUB_WORKSPACE/tools/sweetgl-mali"
+          # same Mesa compile flags as stage 4 (cflags-st.txt); the files that do not see Mesa headers get plain flags
+          CF=(); while IFS= read -r l; do CF+=("$l"); done < "$RUNNER_TEMP/cflags-st.txt"
+          test ${#CF[@]} -gt 0
+          mkdir -p out/dylib; O="$GITHUB_WORKSPACE/out/dylib"
+          CC="xcrun -sdk iphoneos clang -arch arm64 -miphoneos-version-min=$IOS_MIN"
+          # Mesa-facing files (cwd = build dir: meson include paths are relative to it)
+          (cd "$B" && for f in "$M/sweet_drm_mali" "$E/eagl_core" "$E/eagl_mesa"; do
+            $CC "${CF[@]}" -Wno-unused-parameter -isystem "$MAC/System/Library/Frameworks/IOKit.framework/Headers" \
+              -I"$E" -I"$M" -I"$MESA/include" -I"$MESA/src/panfrost/darwin_drm" -I"$MESA/src/gallium/drivers" -I"$MESA/src/mesa" -I"$MESA/src" \
+              -c "$f.c" -o "$O/$(basename $f).o"
+          done)
+          # our own files: -fvisibility=hidden, only sweetgl_state is exported (dylib_main.m)
+          PL="$CC -Wall -Wextra -Werror -Wno-unused-parameter -fvisibility=hidden -I$E -I$M"
+          $PL -fno-objc-arc -c "$E/eagl_objc.m" -o "$O/eagl_objc.o"
+          $PL -fno-objc-arc -c "$E/dylib_main.m" -o "$O/dylib_main.o"
+          for f in gli_table gli_table_gen gli_special; do $PL -std=c11 -c "$E/$f.c" -o "$O/$f.o"; done
+          printf '_sweetgl_state\n' > "$O/exports.txt"
+          # libglsl_standalone.a is the offline compiler's scaffolding: it redefines _mesa_problem & co of libmesa.a (run 39987422556)
+          LIBS=$(find out/libs -name '*.a' ! -name 'libglsl_standalone.a' | sort)
+          # sweet_gl_kernel_import (kernel selector 5 wrapper) is defined in sweet_drm_mali.c, so no -U / weak import any more
+          # -dead_strip off: Mesa registers nothing through constructors, but keep the link simple and the symbol checks below meaningful
+          xcrun -sdk iphoneos clang++ -arch arm64 -miphoneos-version-min=$IOS_MIN -isysroot "$SDK" -dynamiclib \
+            -install_name /usr/lib/libsweetgl.dylib -exported_symbols_list "$O/exports.txt" \
+            -o out/libsweetgl.dylib "$O"/*.o $LIBS \
+            -framework IOKit -framework CoreFoundation -framework Foundation -framework IOSurface -framework OpenGLES -lobjc -lc++ 2>&1 | tee "$RUNNER_TEMP/link-dylib.log"
+          test -f out/libsweetgl.dylib
+          codesign -f -s - out/libsweetgl.dylib
+          D=out/libsweetgl.dylib
+          ls -l $D; file $D
+          # --- verification (every check prints its evidence; a failure exits 1) ---
+          vtool -show-build $D | tee "$RUNNER_TEMP/vtool.txt"
+          grep -q 'platform IOS$' "$RUNNER_TEMP/vtool.txt" || { echo "platform is not IOS"; exit 1; }
+          grep -q 'minos 16.0' "$RUNNER_TEMP/vtool.txt" || { echo "minos is not 16.0"; exit 1; }
+          lipo -info $D > "$RUNNER_TEMP/lipo.txt"; grep -q 'arm64$' "$RUNNER_TEMP/lipo.txt" || { echo "not arm64 only"; exit 1; }
+          echo 'LOADCMDS'; otool -L $D
+          # every dependency is a system path (no @rpath/@loader_path, nothing of ours or of the runner)
+          BADDEP=$(otool -L $D | tail -n +2 | awk '{print $1}' | grep -vE '^(/usr/lib/|/System/Library/)' || true)
+          test -z "$BADDEP" || { echo "non-system dependency: $BADDEP"; exit 1; }
+          otool -D $D > "$RUNNER_TEMP/inst.txt"; grep -qx '/usr/lib/libsweetgl.dylib' "$RUNNER_TEMP/inst.txt" || { echo "install name"; exit 1; }
+          # unresolved symbols: all must say "(from <system dylib>)"
+          nm -um $D > "$RUNNER_TEMP/undef.txt"; wc -l < "$RUNNER_TEMP/undef.txt" | sed 's/^/UNDEF-COUNT /'
+          BADSYM=$(grep -v ' (from ' "$RUNNER_TEMP/undef.txt" || true)
+          test -z "$BADSYM" || { echo "unresolved non-system symbols:"; echo "$BADSYM"; exit 1; }
+          # the DRM emulation symbols Mesa references are defined inside the dylib (hidden is fine, they must not be undefined)
+          nm $D > "$RUNNER_TEMP/syms.txt"   # to a file: grep -q on a pipe dies of SIGPIPE under pipefail
+          for sym in _drmIoctl _drmGetVersion _drmGetCap _drmPrimeFDToHandle _sweet_drm_mali_open _sweet_gl_kernel_import _sweet_drm_mali_release_surface _sweet_eagl_install _sgl_context_create \
+                     _st_api_create_context _panfrost_drm_screen_create __mesa_EGLImageTargetTexture2DOES _sweet_gli_defaults; do
+            grep -qE " [TtDdSsBb] $sym\$" "$RUNNER_TEMP/syms.txt" || { echo "missing defined symbol $sym"; grep -i "${sym#_}" "$RUNNER_TEMP/syms.txt" | head; exit 1; }
+            ! grep -q " $sym\$" "$RUNNER_TEMP/undef.txt" || { echo "$sym is undefined"; exit 1; }
+          done
+          for sym in _drmIoctl _sweet_drm_mali_open; do nm -m $D | grep " $sym\$" | sed 's/^/DRMSYM /'; done
+          # exports: exactly one
+          nm -gUm $D | sed 's/^/EXPORT /'
+          nm -gU $D > "$RUNNER_TEMP/exp.txt"; test "$(wc -l < "$RUNNER_TEMP/exp.txt" | tr -d ' ')" = 1 || { echo "exports are not exactly _sweetgl_state"; exit 1; }
+          # constructor present: ld64 for iOS 16 emits __TEXT,__init_offsets (or __DATA,__mod_init_func)
+          otool -l $D | grep -E 'sectname __(init_offsets|mod_init_func)' | sed 's/^/CTOR /'
+          otool -l $D > "$RUNNER_TEMP/lc.txt"; grep -qE 'sectname __(init_offsets|mod_init_func)' "$RUNNER_TEMP/lc.txt" || { echo "no constructor section"; exit 1; }
+          otool -s __TEXT __init_offsets $D 2>/dev/null | tail -n +3 | sed 's/^/INITOFFSETS /'
+          # the constructor function itself and its log strings
+          grep -E ' t _sweetgl_main$' "$RUNNER_TEMP/syms.txt" | sed 's/^/CTORSYM /'
+          strings -a $D | grep -E 'sweetgl: (loaded|SweetMali|EAGLContext)|/var/tmp/sweetgl.log' | sed 's/^/STR /'
+          # signature: ad-hoc, valid
+          codesign -dv $D 2>&1 | tee "$RUNNER_TEMP/cs.txt"
+          grep -q 'Signature=adhoc' "$RUNNER_TEMP/cs.txt" || { echo "not ad-hoc signed"; exit 1; }
+          codesign --verify --strict -vv $D
+          rm -f "$O"/*.o
+          (cd out && find . -type f -print0 | xargs -0 shasum -a 256 > SHA256SUMS)
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mesa-panfrost-ios
+          path: out
+          if-no-files-found: warn

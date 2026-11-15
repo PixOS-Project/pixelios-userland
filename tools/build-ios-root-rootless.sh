@@ -75,7 +75,7 @@ if [[ ${1:-} == --selftest ]]; then
 	PATH=$t/bin:$PATH fakeroot -- bash -c 'python3 -I tools/rootless/selftest.py tree "$1" && "$2" --stage "$1/os/root" "$1/sysos/root" "$1/appos/root" "$1/stage" 3' _ "$t" "$self"
 	echo "selftest: staged in ${SECONDS}s"
 	truncate -s 128M "$t/vol.img"
-	mkfs.hfsplus -s -J -v iOSRoot "$t/vol.img" >/dev/null
+	mkfs.hfsplus -s -J -n c=4096,a=4096 -v iOSRoot "$t/vol.img" >/dev/null
 	finish "$t/vol.img" 512 "$t/stage" 1024
 	truncate -s 8M "$t/report.bin"
 	python3 -I tools/rootless/selftest.py keys >"$t/keys.txt"
@@ -116,8 +116,11 @@ trap 'exit 130' INT TERM
 # apfs-fuse splits its options on ',' (iPhone10,3 paths): use links; it only parses UDIF when the name ends in .dmg.
 for n in os:087-86698-044 sysos:087-86593-047 appos:087-86715-047; do
 	ln -s "$dir/${n#*:}.dmg" "$work/${n%%:*}.dmg"
-	mkdir "$work/${n%%:*}"
-	"$apfs" "$work/${n%%:*}.dmg" "$work/${n%%:*}"
+	mkdir -p "$work/${n%%:*}"
+	if ! "$apfs" "$work/${n%%:*}.dmg" "$work/${n%%:*}"; then
+		echo "error: apfs-fuse did not mount ${n#*:} (→ $work/${n%%:*}); nothing staged" >&2
+		if ! mountpoint -q "$work/${n%%:*}"; then exit 1; fi
+	fi
 	mounts+=("$work/${n%%:*}")
 done
 echo "== staging (tar of the three trees + plan), $SECONDS s"
@@ -126,7 +129,7 @@ for m in "${mounts[@]}"; do "$fuse_um" -u "$m"; done          # free apfs-fuse's
 mounts=()
 echo "== guest build, $SECONDS s"
 truncate -s "$size" "$part"
-mkfs.hfsplus -s -J -v iOSRoot "$part"
+mkfs.hfsplus -s -J -n c=4096,a=4096 -v iOSRoot "$part"
 finish "$part" 1400 "$work/stage"
 # The sha256 is of the scratch copy (read in parallel with the copy): a bad copy is then caught when the image is flashed.
 cp --sparse=always "$part" "$out.partial" &                  # scratch may be another (faster) file system

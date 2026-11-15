@@ -1,36 +1,41 @@
 # Roadmap
 
 What works is in [docs/STATUS.md](https://github.com/PixOS-Project/pixelios-site/blob/main/docs/STATUS.md) (every row says whether it was *observed on hardware*, *read from source* or is a *guess*).
-This page lists what comes next. Order and estimates are guesses, not promises.
+The port-wide roadmap (kernel, Wi-Fi, GPU) is in [pixelios-kernel ROADMAP.md](https://github.com/PixOS-Project/pixelios-kernel/blob/main/ROADMAP.md).
+This page lists what concerns the iOS root, as of 2026-10-29. Order and estimates are guesses, not promises.
 
 ## Milestones
 
-1. **iPhone GUI on the Pixel 6a: reached** (2026-10-22). Lock screen, home screen, Settings, touch.
-2. **Wi-Fi: not started on hardware.** Broadcom BCM4389 on PCIe; plan in [docs/research/20-wifi-stack-plan.md](https://github.com/PixOS-Project/pixelios-kernel/blob/main/docs/research/20-wifi-stack-plan.md).
+1. **iPhone GUI on the Pixel 6a: reached** (observed 2026-10-22). Lock screen, home screen, Settings, touch.
+2. **Wi-Fi: in progress** in the kernel (firmware boots under XNU, observed 2026-10-26; no scan or join yet).
 
-## Now (demo and release)
+## Done (observed on the phone or the build host)
 
-- Power-on boot without a PC: iOS image in `boot_a`, stock `boot_b` kept as the way back, slot switched with `fastboot --set-active`.
-- Pixel 6a identity in Settings -> About (name, model, serial text), plain lock-screen clock. Built, waiting for a hardware check.
-- Publish this repository.
+- Root build without sudo (`tools/build-ios-root-rootless.sh`, observed on the build host 2026-10-22, see `docs/ROOTLESS_BUILD.md`).
+- Host check before a flash (`tools/check-ios-root.py`), including the HFS+ B-tree straddle guard added after later boots failed with
+  `BTOpenPath returned (5)` (observed 2026-10-25, see the comment in `tools/check-ios-root.py`).
+- Boot times: lock screen about 108 s after the boot command from a migrated root, about 346 s on the first boot after a fresh flash
+  (runs bs-q2 / bs-q1, 2026-10-25).
+
+## In progress (on work branches, not on `main`)
+
+- **GPU client library** `libsweetgl` (branch wip/gpu-mesa): the lock screen and the Settings app draw through it (observed,
+  2026-10-26 / 2026-10-27); home-screen icons are still black tiles on that path.
+- **`bluetoothd` job dropped** from the root until Bluetooth is ported (branch boot/ba5-drop-bluetoothd; observed: no more
+  restarts every ~10 s, runs ba5-inj8-boot1/boot2, 2026-10-28).
 
 ## Next
 
-- **Smoother UI.** Software rendering is slow. Cheap steps first: vsync period in the framebuffer notifications (patch 0101, built, not measured),
-  frame statistics, then profiling what burns the CPU.
-- **Boot selector.** A way out of iOS without a PC (a key held at boot returns to fastboot), later maybe dual boot with a separate data partition.
-- **Remote reset to the bootloader** over the USB network (patch 0100): written, one inconclusive hardware run.
-- `mac-address` entries in the device tree (removes 5 s waits in MobileGestalt), a real-time-clock service (removes a 30 s boot wait).
+- **Boot selector / power-on boot without a PC** (kernel side: iOS image in `boot_a`, stock `boot_b` as the way back): planned, not done.
+- Fresh-flash boot time: the first boot spends most of its time in data migration on the CPU (observed 2026-10-25); skipping the
+  migration is not an option. With 8 CPUs instead of 1 the lock screen came at +344 s instead of +1249 s (runs bs-m6 / bs-m3, 2026-10-25).
 
-## Later
+## Not started
 
-- **Wi-Fi** (milestone 2): PCIe/PHY bring-up behind EL3/ACPM, firmware handling, an `apple80211` front end for iOS.
-- **GPU**: Mali-G78 power domain and clocks sit behind the secure world; research only so far.
-- Audio, Bluetooth, camera, sensors, modem. No work started.
-- Other Tensor phones (Pixel 6, 6 Pro share the SoC tree): see [docs/PORTING.md](https://github.com/PixOS-Project/pixelios-site/blob/main/docs/PORTING.md).
+- Audio, camera, sensors, modem.
 
 ## Where help is most useful
 
 - Hardware captures from other Tensor devices (see [CONTRIBUTING.md](CONTRIBUTING.md) for how to submit them).
-- Reverse-engineering notes: PCIe/PHY init for the Wi-Fi chip, ACPM channels, Mali power sequencing. Cite your sources.
-- Host-side tests and tooling around the existing test loop.
+- Knowledge of which iOS 16 daemons a phone without Apple hardware can drop or must keep, with sources.
+- Host-side tests for the root build and the root check.

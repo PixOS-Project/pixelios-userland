@@ -1,0 +1,124 @@
+From 8a1e96b3dd5f4d7eda93f2d242f10caa03a93ff3 Mon Sep 17 00:00:00 2001
+From: TheSmuks <TheSmuks@users.noreply.github.com>
+Date: Sat, 7 Nov 2026 13:30:51 +0100
+Subject: [PATCH] panfrost: Darwin split tiler heap probe (SWEETGL_SPLITHEAP,
+ default off)
+
+jm_emit_tiler_desc alternates the TILER_HEAP descriptor (base, bottom, top, size and the size
+given to the hierarchy-mask choice) between the two halves of dev->tiler_heap per tiler-carrying
+batch, __APPLE__ only and only with env SWEETGL_SPLITHEAP=1. Jobs still run one at a time in the
+SweetMali shim; this proves a batch confined to its own half renders unchanged (precondition (i)
+of overlapping tiler(N+1) with FS(N)). Logs the first four batches and every 1024th. Linux builds
+and the default (env unset) are untouched. Not run on hardware.
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+---
+ src/gallium/drivers/panfrost/pan_jm.c | 70 +++++++++++++++++++++++++--
+ 1 file changed, 65 insertions(+), 5 deletions(-)
+
+diff --git a/src/gallium/drivers/panfrost/pan_jm.c b/src/gallium/drivers/panfrost/pan_jm.c
+index 57ba7b3..ae56883 100644
+--- a/src/gallium/drivers/panfrost/pan_jm.c
++++ b/src/gallium/drivers/panfrost/pan_jm.c
+@@ -17,6 +17,12 @@
+ #include "pan_precomp.h"
+ #include "pan_trace.h"
+ 
++#ifdef __APPLE__
++#include <stdio.h>
++#include <stdlib.h>
++#include <unistd.h>
++#endif
++
+ #if PAN_ARCH >= 10
+ #error "JM helpers are only used for gen < 10"
+ #endif
+@@ -408,6 +414,47 @@ GENX(jm_launch_grid)(struct panfrost_batch *batch,
+ }
+ 
+ #if PAN_ARCH >= 6
++#ifdef __APPLE__
++/* T-9577 split-heap probe (default OFF; env SWEETGL_SPLITHEAP=1 turns it on, "" and "0" are off, anything else logs one loud line and is off).
++ * Every tiler-carrying batch takes one of two halves of dev->tiler_heap, alternating (base/bottom/top of the TILER_HEAP descriptor and the size passed to the
++ * hierarchy-mask choice move to the half). The jobs still run one at a time in the SweetMali shim, so this only proves that a batch confined to its own
++ * half renders unchanged (precondition (i) of overlapping tiler(N+1) with FS(N), docs/reviews/T-791a-proof.md). Reads and writes no GPU state of its own. */
++static int
++sweet_splitheap_half(struct panfrost_bo *heap, uint64_t *half_size)
++{
++   static int mode = -1; /* -1 not read yet, 0 off, 1 on */
++   static unsigned ctr, cnt[2];
++   int m = __atomic_load_n(&mode, __ATOMIC_ACQUIRE);
++
++   if (m < 0) {
++      const char *e = getenv("SWEETGL_SPLITHEAP");
++      m = 0;
++      if (e && e[0] && !(e[0] == '0' && !e[1])) {
++         if (e[0] == '1' && !e[1]) {
++            m = 1;
++            fprintf(stderr, "SWEETGL: SPLITHEAP on pid %d heap_size %llu half_size %llu\n", (int)getpid(),
++                    (unsigned long long)panfrost_bo_size(heap), (unsigned long long)panfrost_bo_size(heap) / 2);
++         } else {
++            fprintf(stderr, "SWEETGL: SPLITHEAP unavailable: SWEETGL_SPLITHEAP=\"%.16s\" is not 0 or 1, split heap OFF\n", e);
++         }
++      }
++      __atomic_store_n(&mode, m, __ATOMIC_RELEASE);
++   }
++   if (!m)
++      return -1;
++
++   *half_size = panfrost_bo_size(heap) / 2;
++   unsigned n = __atomic_fetch_add(&ctr, 1, __ATOMIC_RELAXED);
++   unsigned h = n & 1;
++   unsigned c = __atomic_add_fetch(&cnt[h], 1, __ATOMIC_RELAXED);
++   if (n < 4 || (n & 1023) == 1023)
++      fprintf(stderr, "SWEETGL: SPLITHEAP batches %u half0 %u half1 %u (this one: half %u)\n", n + 1,
++              __atomic_load_n(&cnt[0], __ATOMIC_RELAXED), __atomic_load_n(&cnt[1], __ATOMIC_RELAXED), h);
++   (void)c;
++   return (int)h;
++}
++#endif
++
+ static uint64_t
+ jm_emit_tiler_desc(struct panfrost_batch *batch)
+ {
+@@ -420,11 +467,24 @@ jm_emit_tiler_desc(struct panfrost_batch *batch)
+ 
+    struct pan_ptr t = pan_pool_alloc_desc(&batch->pool.base, TILER_HEAP);
+ 
++   uint64_t heap_size = panfrost_bo_size(dev->tiler_heap);
++   uint64_t heap_base = dev->tiler_heap->ptr.gpu;
++#ifdef __APPLE__
++   {
++      uint64_t half_size = 0;
++      int half = sweet_splitheap_half(dev->tiler_heap, &half_size);
++      if (half >= 0) {
++         heap_size = half_size;
++         heap_base += (uint64_t)half * half_size;
++      }
++   }
++#endif
++
+    pan_cast_and_pack(t.cpu, TILER_HEAP, heap) {
+-      heap.size = panfrost_bo_size(dev->tiler_heap);
+-      heap.base = dev->tiler_heap->ptr.gpu;
+-      heap.bottom = dev->tiler_heap->ptr.gpu;
+-      heap.top = dev->tiler_heap->ptr.gpu + panfrost_bo_size(dev->tiler_heap);
++      heap.size = heap_size;
++      heap.base = heap_base;
++      heap.bottom = heap_base;
++      heap.top = heap_base + heap_size;
+    }
+ 
+    uint64_t heap = t.gpu;
+@@ -436,7 +496,7 @@ jm_emit_tiler_desc(struct panfrost_batch *batch)
+       /* On JM, we don't care of passing the tile_size as it only matters for v12+ */
+       tiler.hierarchy_mask = GENX(pan_select_tiler_hierarchy_mask)(
+          batch->key.width, batch->key.height, dev->tiler_features.max_levels, 0,
+-         panfrost_bo_size(dev->tiler_heap));
++         heap_size);
+ 
+       tiler.fb_width = batch->key.width;
+       tiler.fb_height = batch->key.height;
+-- 
+2.47.3
+

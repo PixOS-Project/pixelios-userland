@@ -11,7 +11,9 @@ Reads the raw file (never mounts it) and checks what XNU needs at rd=ufsroot0:
   * by walking the catalog B-tree (leaf scan, extents overflow, Linux-hfsplus hard links):
     /sbin/launchd, /usr/lib/dyld, the dyld shared cache where dyld looks at ignition_level=1
     and in the cryptex it is linked from, the system keybag, and that
-    tools/sweet-root-tweaks.py ran (no _PanicOnCrash / CommCenter left in launchd.plist).
+    tools/sweet-root-tweaks.py ran (no _PanicOnCrash / CommCenter left in launchd.plist);
+  * only if /usr/lib/libsweetgl.dylib is in the image (overlay-ios-root.sh 5th argument): mode 755, arm64 Mach-O for
+    platform iOS, and the com.apple.backboardd job has DYLD_INSERT_LIBRARIES pointing at it.
 Exit 0 only if every check passes. Output: one line per check, "ok" or "FAIL".
 """
 import glob, json, os, plistlib, shutil, struct, subprocess, sys, tempfile
@@ -29,6 +31,25 @@ FILES = [
     ('private/var/keybags/systembag.kb', 'plain system keybag (keybagd, /defaults/no-effaceable-storage)'),
     ('System/Library/xpc/launchd.plist', 'launchd job list'),
 ]
+SWEETGL = 'usr/lib/libsweetgl.dylib'
+
+
+def macho_ios_arm64(head):
+    """True if `head` (header + load commands) is a thin arm64 Mach-O with LC_BUILD_VERSION platform 2 (iOS)."""
+    if len(head) < 32:
+        return False
+    magic, cpu, _, _, ncmds, szcmds = struct.unpack_from('<IIIIII', head, 0)
+    if magic != 0xfeedfacf or cpu != 0x0100000c:
+        return False
+    off = 32
+    for _ in range(ncmds):
+        if off + 8 > len(head):
+            return False
+        cmd, sz = struct.unpack_from('<II', head, off)
+        if cmd == 0x32 and struct.unpack_from('<I', head, off + 8)[0] == 2:
+            return True
+        off += sz
+    return False
 
 
 class Bad(Exception):
@@ -90,7 +111,9 @@ class Volume:
             raise Bad(f'no HFS+/HFSX signature at offset 1024 (found {vh[:2].hex()}; XNU: "unknown Volume Signature")')
         self.attr, self.last_mounted = struct.unpack_from('>I4s', vh, 4)
         self.bs, self.total = struct.unpack_from('>II', vh, 40)
+        self.extents_fork = vh[192:272]     # extents overflow file (file id 3): BTOpenPath checks its nodes too
         self.catalog_fork = vh[272:352]
+        self.attributes_fork = vh[352:432]
         self.overflow = Fork(f, self.bs, extents_at(vh, 192 + 16))     # extents overflow file
 
     def full_fork(self, fileid, forkdata):
@@ -181,11 +204,32 @@ def check(path, max_bytes):
         rec(v.size % DEV_BLOCK == 0, f'image size is a multiple of {DEV_BLOCK}')
         rec(v.size <= max_bytes, f'image {v.size / MIB:.0f} MiB '
             + (f'fits the {max_bytes // MIB} MiB userdata partition' if v.size <= max_bytes else f'is bigger than the {max_bytes // MIB} MiB userdata partition'))
+        # XNU refuses a journaled mount when a B-tree node straddles two extents (BTree.c BTOpenPath -> NodesAreContiguous): the
+        # image mounts once, then every later boot fails with "BTOpenPath returned (5)" (observed 2026-10-25, ios-root3*).
+        for name, fid, fd in (('extents', 3, v.extents_fork), ('catalog', 4, v.catalog_fork), ('attributes', 8, v.attributes_fork)):
+            if not struct.unpack_from('>QII', fd, 0)[2]:
+                continue                    # no such file (a minimal test volume has no attributes B-tree)
+            try:
+                fork, _ = v.full_fork(fid, fd)
+                nsz = struct.unpack_from('>H', fork.read(0, 64), 32)[0]
+                if nsz < 512 or nsz & (nsz - 1):    # TN1150 BTHeaderRec.nodeSize: a power of two, 512..32768 (review userland-extents-straddle-r1 F1)
+                    raise Bad(f'bad node size {nsz} (must be a power of two >= 512)')
+                pos, bad = 0, []
+                for start, cnt in fork.ext:
+                    if (pos * v.bs) % nsz or (cnt * v.bs) % nsz:
+                        bad.append((start, cnt))
+                    pos += cnt
+                rec(not bad, f'{name} B-tree: {nsz}-byte nodes never straddle two extents'
+                    if not bad else f'{name} B-tree has {nsz}-byte nodes but extents {bad[:3]} are not node-aligned: XNU cannot remount this '
+                    f'volume (mkfs.hfsplus needs -n c=4096,a=4096 so nodes equal the {v.bs}-byte block)')
+            except (Bad, struct.error, ZeroDivisionError) as e:
+                rec(False, f'{name} B-tree header unreadable: {e}')
         try:
-            v.index({os.path.basename(p) for p, _ in FILES} | {c for p, _ in FILES for c in p.split('/')})
+            v.index({os.path.basename(p) for p, _ in FILES + [(SWEETGL, '')]} | {c for p, _ in FILES + [(SWEETGL, '')] for c in p.split('/')})
         except (Bad, struct.error) as e:
             rec(False, f'catalog B-tree unreadable: {e}')
             return out
+        plist = None
         for p, why in FILES:
             try:
                 size, fork = v.read_file(p)
@@ -197,12 +241,34 @@ def check(path, max_bytes):
                 continue
             if p.endswith('xpc/launchd.plist'):
                 try:
-                    jobs = plistlib.loads(fork.read(0, size))['LaunchDaemons'].values()
+                    plist = plistlib.loads(fork.read(0, size))
+                    jobs = plist['LaunchDaemons'].values()
                     left = sum('_PanicOnCrash' in j for j in jobs) + sum(j.get('Label') == 'com.apple.CommCenter' for j in jobs)
+                    lab = {j.get('Label'): j for j in plist['LaunchDaemons'].values()}
+                    if any(str(k).startswith('org.pixelios.sweetmali-') for k in lab):
+                        nr = lab.get('org.pixelios.sweetmali-nonroot', {})
+                        rec(nr.get('UserName') == 'mobile' and nr.get('ProgramArguments', [None, None])[-1:] == ['nonroot'],
+                            f"sweetmali-nonroot job runs `nonroot` as UserName {nr.get('UserName')!r} (want 'mobile')")
                     rec(left == 0, 'launchd.plist has the bring-up tweaks (no _PanicOnCrash, no CommCenter)'
                         if left == 0 else f'launchd.plist: {left} untweaked entries; tools/sweet-root-tweaks.py did not run')
                 except Exception as e:
                     rec(False, f'launchd.plist unreadable: {e}')
+        try:
+            cnid, body = v.lookup(SWEETGL)
+        except Bad:
+            return out                                       # no injection in this image
+        try:
+            size, fork = v.read_file(SWEETGL)
+            mode = struct.unpack_from('>H', body, 42)[0] & 0o7777
+            rec(mode == 0o755, f'/{SWEETGL} mode {mode:o} (want 755)')
+            rec(macho_ios_arm64(fork.read(0, min(size, 4096))), f'/{SWEETGL} ({size} bytes) is an arm64 Mach-O for platform iOS')
+            bb = [j for j in (plist or {}).get('LaunchDaemons', {}).values() if j.get('Label') == 'com.apple.backboardd']
+            env = bb[0].get('EnvironmentVariables', {}).get('DYLD_INSERT_LIBRARIES') if len(bb) == 1 else None
+            rec(env == '/' + SWEETGL, f'backboardd job (x{len(bb)}) DYLD_INSERT_LIBRARIES = {env!r} (want /{SWEETGL})')
+            cft = bb[0].get('EnvironmentVariables', {}).get('CA_FORCE_TIMER') if len(bb) == 1 else None
+            rec(cft == '1', f'backboardd job (x{len(bb)}) CA_FORCE_TIMER = {cft!r} (want \'1\': CA uses the IOMFB vsync source)')
+        except Exception as e:
+            rec(False, f'/{SWEETGL} check failed: {e}')
     return out
 
 
@@ -222,11 +288,12 @@ def userdata_mib(board):
 
 # ---------------------------------------------------------------- selftest: synthetic image
 
-def build_image(path, files, bs=4096, sig=b'HX', hardlink=None, scatter=None, size=96 * 4096):
+def build_image(path, files, bs=4096, sig=b'HX', hardlink=None, scatter=None, size=96 * 4096, modes=None, nsz=None):
     """Write a tiny HFSX image. files: {path: bytes}; hardlink: (path, bytes) stored the way Linux hfsplus
     does (hlnk record -> iNode99 in the private dir); scatter: path whose data is split over nine
-    one-block extents (the ninth is only reachable through the extents overflow file)."""
-    nsz = bs
+    one-block extents (the ninth is only reachable through the extents overflow file). nsz: B-tree node size (default bs;
+    2*bs reproduces the AP-52 layout when the catalog extents are then split to one block)."""
+    nsz = nsz or bs
     files = dict(files)
     if hardlink:
         files[PRIVATE + '/iNode99'] = hardlink[1]
@@ -270,7 +337,7 @@ def build_image(path, files, bs=4096, sig=b'HX', hardlink=None, scatter=None, si
     for p, content in files.items():
         r = bytearray(248)
         struct.pack_into('>hHII', r, 0, 2, 0, 0, cnid[p])
-        struct.pack_into('>H', r, 42, 0o100755)
+        struct.pack_into('>H', r, 42, 0o100000 | (modes or {}).get(p, 0o755))
         if content is None:                                 # Linux hfsplus hard link: type/creator hlnk/hfs+, iNode number in "special"
             r[48:56] = b'hlnkhfs+'
             struct.pack_into('>I', r, 44, 99)
@@ -350,6 +417,17 @@ def selftest():
 
     res, bad = run('good image')
     assert not bad, bad
+    def jobs(**nr):
+        j = {'a': {'Label': 'x'}, 'b': {'Label': 'org.pixelios.sweetmali-map'}}
+        if nr:
+            j['c'] = {'Label': 'org.pixelios.sweetmali-nonroot', 'ProgramArguments': ['/t', 'nonroot'], **nr}
+        return {**files, 'System/Library/xpc/launchd.plist': plistlib.dumps({'LaunchDaemons': j, 'pad': 'x' * 33000}, fmt=plistlib.FMT_BINARY)}
+    _, bad = run('nonroot job ok', files=jobs(UserName='mobile'))
+    assert not bad, bad
+    _, bad = run('nonroot job missing', files=jobs())
+    assert len(bad) == 1 and 'sweetmali-nonroot' in bad[0], bad
+    _, bad = run('nonroot job as root', files=jobs(UserName='root'))
+    assert len(bad) == 1 and 'sweetmali-nonroot' in bad[0], bad
     assert any('(33' in m or 'launchd.plist' in m for _, m in res)
     _, bad = run('no launchd', files={k: v for k, v in files.items() if k != 'sbin/launchd'})
     assert len(bad) == 1 and 'missing: /sbin' in bad[0], bad
@@ -380,6 +458,22 @@ def selftest():
             assert res[0][0] and any('missing: /sbin' in m for ok, m in res), res
         else:
             print('[real mkfs.hfsplus image] skipped: mkfs.hfsplus not installed (sudo apt install hfsprogs)')
+    # libsweetgl injection checks
+    macho = struct.pack('<IIIIIIII', 0xfeedfacf, 0x0100000c, 0, 6, 1, 24, 0, 0) + struct.pack('<IIIIII', 0x32, 24, 2, 0, 0, 0)
+    inj = {'LaunchDaemons': {'/S/b.plist': {'Label': 'com.apple.backboardd', 'EnvironmentVariables': {'DYLD_INSERT_LIBRARIES': '/' + SWEETGL, 'CA_FORCE_TIMER': '1'}}}}
+    ok_files = {**files, 'System/Library/xpc/launchd.plist': plistlib.dumps(inj), SWEETGL: macho}
+    _, bad = run('injected dylib', files=ok_files, scatter=None)
+    assert not bad, bad
+    _, bad = run('dylib mode 644', files=ok_files, scatter=None, modes={SWEETGL: 0o644})
+    assert len(bad) == 1 and 'mode 644' in bad[0], bad
+    _, bad = run('dylib not iOS', files={**ok_files, SWEETGL: macho[:40] + struct.pack('<I', 1) + macho[44:]}, scatter=None)
+    assert len(bad) == 1 and 'platform iOS' in bad[0], bad
+    noenv = {'LaunchDaemons': {'/S/b.plist': {'Label': 'com.apple.backboardd'}}}
+    _, bad = run('no DYLD env', files={**ok_files, 'System/Library/xpc/launchd.plist': plistlib.dumps(noenv)}, scatter=None)
+    assert any('DYLD_INSERT_LIBRARIES' in b for b in bad), bad
+    noft = {'LaunchDaemons': {'/S/b.plist': {'Label': 'com.apple.backboardd', 'EnvironmentVariables': {'DYLD_INSERT_LIBRARIES': '/' + SWEETGL}}}}
+    _, bad = run('no CA_FORCE_TIMER', files={**ok_files, 'System/Library/xpc/launchd.plist': plistlib.dumps(noft)}, scatter=None)
+    assert len(bad) == 1 and 'CA_FORCE_TIMER' in bad[0], bad
     print('selftest OK')
 
 

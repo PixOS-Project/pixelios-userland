@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- T-86aa/T-f9ab: application-identifier ONLY, like an ordinary CoreBluetooth app. The earlier set was not what it claimed
+     (docs/reviews/T-86aa-review.md finding 4, read from the stock bluetoothd binary):
+       com.apple.developer.bluetooth-central-screen-off-scanning  is a real bluetoothd capability flag (screen-off
+           scanning, session+0xa9), more than an ordinary central app holds, so it is dropped;
+       com.apple.developer.bluetooth-usage, ...-background-modes, ...-advertising-extended-filters  occur in no string
+           of bluetoothd nor of the dyld shared cache: nothing reads them. Background modes are Info.plist
+           UIBackgroundModes, not an entitlement.
+     An ordinary central app needs no Bluetooth entitlement; the access check is a TCC grant (kTCCServiceBluetoothAlways).
+     run-plan-overlay.sh refuses a binary whose sealed entitlements differ from this set. -->
+<plist version="1.0">
+<dict>
+	<key>application-identifier</key>
+	<string>com.pixos.btprobe</string>
+</dict>
+</plist>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- sprint-bt bt-logread: the two client entitlements logd 20H392 reads with xpc_connection_copy_entitlement_value (strings in
+     /usr/libexec/logd: com.apple.private.logging.admin, com.apple.private.logging.diagnostic); which one gates the system store is
+     not decoded yet [guess: admin or diagnostic], so both are carried; the run's GAP/RESULT line shows whether the store opens. -->
+<plist version="1.0">
+<dict>
+	<key>com.apple.private.logging.admin</key>
+	<true/>
+	<key>com.apple.private.logging.diagnostic</key>
+	<true/>
+</dict>
+</plist>

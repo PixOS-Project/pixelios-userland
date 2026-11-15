@@ -9,9 +9,9 @@ Thanks for looking. This is hardware bring-up, so a few rules keep it safe and h
 - **Observations vs. guesses.** Notes and PRs say what was seen on a device and what is inferred.
   Include the build/commit under test.
 - **Never commit private data.** No device serials, IMEI, partition dumps, Apple firmware,
-  keys or `.env` files. `tools/validate-repo.py` and the `.gitignore` help, they do not replace care.
-- **Tests.** Host tests live next to the code (`shim/*_host_test.c`, `tools/test_*.py`) and run in
-  `tools/check-all.sh`. New logic gets one.
+  keys or `.env` files. `tools/validate-repo.py` (in pixelios-kernel) and the `.gitignore` help, they do not replace care.
+- **Tests.** Host tests live next to the code: `tools/test_*.py` here; `shim/*_host_test.c` and `tools/test_*.py` in pixelios-kernel,
+  where `tools/check-all.sh` runs them (this repository has no gate script of its own). New logic gets one.
 - **New devices** go in their own tree (`tools/pix new-device`, see [docs/PORTING.md](https://github.com/PixOS-Project/pixelios-site/blob/main/docs/PORTING.md)); do not
   add per-phone conditionals to the shared shim.
 - **Hardware you do not own.** Please do not open "works on my device" PRs for other phones
@@ -24,7 +24,7 @@ firmware into prompts or commits. See [docs/AI_DEVELOPMENT.md](docs/AI_DEVELOPME
 ## Getting started
 
 1. Read [README.md](README.md), [docs/STATUS.md](https://github.com/PixOS-Project/pixelios-site/blob/main/docs/STATUS.md) and [ROADMAP.md](ROADMAP.md) to see what exists and what is wanted.
-2. Set up: the build steps in [docs/BUILD.md](https://github.com/PixOS-Project/pixelios-kernel/blob/main/docs/BUILD.md). Run `tools/check-all.sh` before you push; it must print `GATE PASS`.
+2. Set up: the build steps in [docs/BUILD.md](https://github.com/PixOS-Project/pixelios-kernel/blob/main/docs/BUILD.md). For a kernel change run pixelios-kernel's `tools/check-all.sh` before you push; it must print `GATE PASS`. Here, run the `tools/test_*.py` host tests.
 3. Kernel changes are numbered patches in `xnu/patches/` (contiguous, applied in order on xnu-8796). Never edit the fetched upstream tree; add or regenerate a patch.
    `tools/stack-apply` checks that the stack applies on pristine xnu-8796.
 4. Prefer changing a table (`soc/*/soc.json`, `device/*/*/board.json`) over copying constants into code, and cite the source of every hardware constant
